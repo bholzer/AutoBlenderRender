@@ -25,6 +25,7 @@ provider "aws" {
 
 resource "aws_vpc" "zip_render_farm_vpc" {
   cidr_block = var.vpc_cidr
+  enable_dns_hostnames = true
 }
 
 resource "aws_subnet" "main_subnet" {
@@ -115,6 +116,13 @@ resource "aws_efs_file_system" "shared_render_vol" {
   tags = {
     Name = "SharedRenderEFS"
   }
+}
+
+resource "aws_efs_mount_target" "shared_mount" {
+  file_system_id = aws_efs_file_system.shared_render_vol.id
+  subnet_id      = aws_subnet.main_subnet.id
+
+  security_groups = [aws_security_group.nfs.id]
 }
 
 resource "aws_iam_instance_profile" "render_node_profile" {
