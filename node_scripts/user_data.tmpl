@@ -1,0 +1,49 @@
+Content-Type: multipart/mixed; boundary="//"
+MIME-Version: 1.0
+
+--//
+Content-Type: text/cloud-config; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment; filename="cloud-config.txt"
+
+#cloud-config
+repo_update: true
+repo_upgrade: all
+
+cloud_final_modules:
+- [scripts-user, always]
+
+packages:
+- amazon-efs-utils
+
+runcmd:
+- file_system_id_01=fs-fecf31b6
+- efs_directory=/mnt/efs
+
+- mkdir -p $${efs_directory}
+- echo "$${file_system_id_01}:/ $${efs_directory} efs tls,_netdev" >> /etc/fstab
+- mount -a -t efs defaults
+
+--//
+Content-Type: text/x-shellscript; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment; filename="userdata.txt"
+
+#!/bin/bash
+
+export REGION=${region}
+export BUCKET=${bucket}
+export FRAME_QUEUE=${frame_queue_url}
+export FRAME_QUEUE_ASG=${frame_queue_asg}
+export PROJECT_INIT_QUEUE=${project_init_queue_url}
+export PROJECT_INIT_QUEUE_ASG=${project_init_queue_asg}
+
+tee init_script.rb <<EOF
+${init_script}
+EOF
+
+ruby ./init_script.rb
+
+--//
