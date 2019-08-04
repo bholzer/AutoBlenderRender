@@ -1,6 +1,6 @@
 variable "blender_node_image_id" {
   type = string
-  default = "ami-02d6e6fad0a374703"
+  default = "ami-0d4500bbcdea27e3c"
 }
 
 variable "frame_queue_bpi" {

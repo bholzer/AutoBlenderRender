@@ -31,10 +31,25 @@ resource "aws_subnet" "main_subnet" {
   vpc_id = aws_vpc.zip_render_farm_vpc.id
   cidr_block = var.vpc_cidr
   availability_zone = var.availability_zone
+  map_public_ip_on_launch = true
 
   tags = {
     Name = "Main"
   }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.zip_render_farm_vpc.id
+
+  tags = {
+    Name = "main"
+  }
+}
+
+resource "aws_route" "internet_access" {
+  route_table_id         = aws_vpc.zip_render_farm_vpc.main_route_table_id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.gw.id
 }
 
 resource "aws_s3_bucket" "render_bucket" {
@@ -236,7 +251,8 @@ resource "aws_launch_template" "render_node_template" {
     frame_queue_url = aws_sqs_queue.frame_render_queue.id,
     frame_queue_asg = var.render_worker_asg_name,
     project_init_queue_url = aws_sqs_queue.project_init_queue.id,
-    project_init_queue_asg = var.render_init_asg_name
+    project_init_queue_asg = var.render_init_asg_name,
+    shared_file_system_id = aws_efs_file_system.shared_render_vol.id
   }))
 }
 
@@ -266,7 +282,8 @@ resource "aws_launch_template" "init_node_template" {
     frame_queue_url = aws_sqs_queue.frame_render_queue.id,
     frame_queue_asg = var.render_worker_asg_name,
     project_init_queue_url = aws_sqs_queue.project_init_queue.id,
-    project_init_queue_asg = var.render_init_asg_name
+    project_init_queue_asg = var.render_init_asg_name,
+    shared_file_system_id = aws_efs_file_system.shared_render_vol.id
   }))
 }
 

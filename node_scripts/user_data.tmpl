@@ -18,7 +18,7 @@ packages:
 - amazon-efs-utils
 
 runcmd:
-- file_system_id_01=fs-fecf31b6
+- file_system_id_01=${shared_file_system_id}
 - efs_directory=/mnt/efs
 
 - mkdir -p $${efs_directory}
