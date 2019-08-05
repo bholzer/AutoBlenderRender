@@ -6,14 +6,14 @@ provider "aws" {
 # Package the lambda functions
 data "archive_file" "bpi_lambda_zip" {
   type = "zip"
-  source_dir = "../lambdas/bpi_metric_emitter"
-  output_path = "../lambdas/bpi_metric_emitter.zip"
+  source_dir = "./lambdas/bpi_metric_emitter"
+  output_path = "./lambdas/bpi_metric_emitter.zip"
 }
 
 data "archive_file" "s3_upload_handler" {
   type = "zip"
-  source_dir = "../lambdas/s3_upload_handler"
-  output_path = "../lambdas/s3_upload_handler.zip"
+  source_dir = "./lambdas/s3_upload_handler"
+  output_path = "./lambdas/s3_upload_handler.zip"
 }
 
 # Build up the vpc and subnets
@@ -258,8 +258,8 @@ resource "aws_launch_template" "render_node_template" {
     name = aws_iam_instance_profile.render_node_profile.name
   }
 
-  user_data = base64encode(templatefile("../node_scripts/user_data.tmpl", {
-    init_script = file("../node_scripts/queue_renderer.rb"),
+  user_data = base64encode(templatefile("./node_scripts/user_data.tmpl", {
+    init_script = file("./node_scripts/queue_renderer.rb"),
     region = var.region,
     bucket = aws_s3_bucket.render_bucket.id,
     frame_queue_url = aws_sqs_queue.frame_render_queue.id,
@@ -289,8 +289,8 @@ resource "aws_launch_template" "init_node_template" {
 
   key_name = var.node_key_name
 
-  user_data = base64encode(templatefile("../node_scripts/user_data.tmpl", {
-    init_script = file("../node_scripts/project_init.rb"),
+  user_data = base64encode(templatefile("./node_scripts/user_data.tmpl", {
+    init_script = file("./node_scripts/project_init.rb"),
     region = var.region,
     bucket = aws_s3_bucket.render_bucket.id,
     frame_queue_url = aws_sqs_queue.frame_render_queue.id,
@@ -468,7 +468,7 @@ resource "aws_iam_role_policy_attachment" "s3_bpi_metric_emitter_attach_policy" 
 
 
 resource "aws_lambda_function" "bpi_metric_emitter" {
-  filename = "../lambdas/bpi_metric_emitter.zip"
+  filename = "./lambdas/bpi_metric_emitter.zip"
   function_name = "bpi_metric_emitter"
   role = aws_iam_role.bpi_metric_emitter_role.arn
   handler = "bpi_metric_emitter.lambda_handler"
@@ -564,7 +564,7 @@ resource "aws_iam_role_policy_attachment" "lambda_s3_upload_handler_attach_polic
 }
 
 resource "aws_lambda_function" "s3_upload_handler" {
-  filename = "../lambdas/s3_upload_handler.zip"
+  filename = "./lambdas/s3_upload_handler.zip"
   function_name = "s3_upload_handler"
   role = aws_iam_role.s3_upload_handler_role.arn
   handler = "s3_upload_handler.lambda_handler"
