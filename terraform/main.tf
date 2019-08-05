@@ -1,3 +1,9 @@
+provider "aws" {
+  version = "~> 2.0"
+  region = var.region
+}
+
+# Package the lambda functions
 data "archive_file" "bpi_lambda_zip" {
   type = "zip"
   source_dir = "../lambdas/bpi_metric_emitter"
@@ -10,19 +16,7 @@ data "archive_file" "s3_upload_handler" {
   output_path = "../lambdas/s3_upload_handler.zip"
 }
 
-data "local_file" "project_init_node_script" {
-  filename = "../node_scripts/project_init.rb"
-}
-
-data "local_file" "renderer_node_script" {
-  filename = "../node_scripts/queue_renderer.rb"
-}
-
-provider "aws" {
-  version = "~> 2.0"
-  region = var.region
-}
-
+# Build up the vpc and subnets
 resource "aws_vpc" "zip_render_farm_vpc" {
   cidr_block = var.vpc_cidr
   enable_dns_hostnames = true
@@ -53,10 +47,14 @@ resource "aws_route" "internet_access" {
   gateway_id             = aws_internet_gateway.gw.id
 }
 
+# Bucket for uploading blends and storing render output
+
 resource "aws_s3_bucket" "render_bucket" {
   bucket = var.render_bucket_name
   acl    = "private"
 }
+
+# Security groups for the worker nodes
 
 resource "aws_security_group" "ssh" {
   name = "allow_ssh"
@@ -96,6 +94,8 @@ resource "aws_security_group" "nfs" {
   }
 }
 
+# Build queues for project init and frame rendering
+
 resource "aws_sqs_queue" "frame_render_deadletter" {
   name = "frame_render_deadletter_queue"
 }
@@ -111,6 +111,8 @@ resource "aws_sqs_queue" "project_init_queue" {
   visibility_timeout_seconds = 7000
 }
 
+# EFS for shared storage during baking and rendering
+
 resource "aws_efs_file_system" "shared_render_vol" {
 
   tags = {
@@ -124,6 +126,8 @@ resource "aws_efs_mount_target" "shared_mount" {
 
   security_groups = [aws_security_group.nfs.id]
 }
+
+# Build IAM profile for worker nodes
 
 resource "aws_iam_instance_profile" "render_node_profile" {
   name = "render_node_profile"
@@ -233,6 +237,8 @@ resource "aws_iam_role_policy_attachment" "autoscale_attach_policy" {
   policy_arn = aws_iam_policy.render_node_autoscale_policy.arn
 }
 
+# Launch templates for worker types
+
 resource "aws_launch_template" "render_node_template" {
   name = "render_node_template"
   block_device_mappings {
@@ -293,13 +299,6 @@ resource "aws_launch_template" "init_node_template" {
     project_init_queue_asg = var.render_init_asg_name,
     shared_file_system_id = aws_efs_file_system.shared_render_vol.id
   }))
-}
-
-resource "aws_cloudwatch_event_rule" "bpi_trigger" {
-  name        = "BacklogPerInstanceMetricTrigger"
-  description = "Every minute, hit lambda to check the queues and emit a BPI metric"
-
-  schedule_expression = "rate(1 minute)"
 }
 
 resource "aws_autoscaling_group" "render_workers" {
@@ -418,6 +417,15 @@ resource "aws_autoscaling_policy" "render_initializer_autoscaling_policy" {
   }
 }
 
+# Setup BPI metric emitter and listener
+
+resource "aws_cloudwatch_event_rule" "bpi_trigger" {
+  name        = "BacklogPerInstanceMetricTrigger"
+  description = "Every minute, hit lambda to check the queues and emit a BPI metric"
+
+  schedule_expression = "rate(1 minute)"
+}
+
 resource "aws_iam_role" "bpi_metric_emitter_role" {
   name = "bpi_metric_emitter_role"
 
@@ -478,6 +486,22 @@ resource "aws_lambda_function" "bpi_metric_emitter" {
     }
   }
 }
+
+resource "aws_cloudwatch_event_target" "bpi_metric_emitter_cw_target" {
+  target_id = "bpi_metric_emitter_cw_target"
+  rule = aws_cloudwatch_event_rule.bpi_trigger.name
+  arn = aws_lambda_function.bpi_metric_emitter.arn
+}
+
+resource "aws_lambda_permission" "bpi_metric_emitter_cw_trigger_permission" {
+  statement_id = "AllowExecutionFromCloudWatch"
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.bpi_metric_emitter.function_name
+  principal = "events.amazonaws.com"
+  source_arn = aws_cloudwatch_event_rule.bpi_trigger.arn
+}
+
+# S3 project upload listener
 
 resource "aws_iam_role" "s3_upload_handler_role" {
   name = "s3_upload_handler_role"
@@ -570,12 +594,6 @@ resource "aws_s3_bucket_notification" "blend_upload_notification" {
   }
 }
 
-resource "aws_cloudwatch_event_target" "bpi_metric_emitter_cw_target" {
-  target_id = "bpi_metric_emitter_cw_target"
-  rule = aws_cloudwatch_event_rule.bpi_trigger.name
-  arn = aws_lambda_function.bpi_metric_emitter.arn
-}
-
 resource "aws_lambda_permission" "s3_upload_handler_trigger_permission" {
   statement_id  = "AllowExecutionFromS3"
   action        = "lambda:InvokeFunction"
@@ -584,10 +602,3 @@ resource "aws_lambda_permission" "s3_upload_handler_trigger_permission" {
   source_arn    = aws_s3_bucket.render_bucket.arn
 }
 
-resource "aws_lambda_permission" "bpi_metric_emitter_cw_trigger_permission" {
-  statement_id = "AllowExecutionFromCloudWatch"
-  action = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.bpi_metric_emitter.function_name
-  principal = "events.amazonaws.com"
-  source_arn = aws_cloudwatch_event_rule.bpi_trigger.arn
-}
