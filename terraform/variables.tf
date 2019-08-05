@@ -55,5 +55,5 @@ variable "render_bucket_name" {
 variable "cloudwatch_namespace" {
   type = string
   description = "Namespace for rendering cloudwatch events"
-  default = "ZipRender"
+  default = "RenderFarm"
 }

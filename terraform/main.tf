@@ -17,13 +17,13 @@ data "archive_file" "s3_upload_handler" {
 }
 
 # Build up the vpc and subnets
-resource "aws_vpc" "zip_render_farm_vpc" {
+resource "aws_vpc" "render_farm_vpc" {
   cidr_block = var.vpc_cidr
   enable_dns_hostnames = true
 }
 
 resource "aws_subnet" "main_subnet" {
-  vpc_id = aws_vpc.zip_render_farm_vpc.id
+  vpc_id = aws_vpc.render_farm_vpc.id
   cidr_block = var.vpc_cidr
   availability_zone = var.availability_zone
   map_public_ip_on_launch = true
@@ -34,7 +34,7 @@ resource "aws_subnet" "main_subnet" {
 }
 
 resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.zip_render_farm_vpc.id
+  vpc_id = aws_vpc.render_farm_vpc.id
 
   tags = {
     Name = "main"
@@ -42,7 +42,7 @@ resource "aws_internet_gateway" "gw" {
 }
 
 resource "aws_route" "internet_access" {
-  route_table_id         = aws_vpc.zip_render_farm_vpc.main_route_table_id
+  route_table_id         = aws_vpc.render_farm_vpc.main_route_table_id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.gw.id
 }
@@ -58,7 +58,7 @@ resource "aws_s3_bucket" "render_bucket" {
 
 resource "aws_security_group" "ssh" {
   name = "allow_ssh"
-  vpc_id = aws_vpc.zip_render_farm_vpc.id
+  vpc_id = aws_vpc.render_farm_vpc.id
 
   ingress {
     from_port = 22
@@ -77,7 +77,7 @@ resource "aws_security_group" "ssh" {
 
 resource "aws_security_group" "nfs" {
   name = "NFS"
-  vpc_id = aws_vpc.zip_render_farm_vpc.id
+  vpc_id = aws_vpc.render_farm_vpc.id
 
   ingress {
     from_port = 2049
