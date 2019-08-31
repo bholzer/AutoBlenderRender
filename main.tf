@@ -16,35 +16,15 @@ data "archive_file" "s3_upload_handler" {
   output_path = "./lambdas/s3_upload_handler.zip"
 }
 
-# Build up the vpc and subnets
-resource "aws_vpc" "render_farm_vpc" {
-  cidr_block = var.vpc_cidr
-  enable_dns_hostnames = true
+module "network" {
+  source = "./modules/network"
+
+  availibility_zone = var.availability_zone
+  vpc_cidr = var.vpc_cidr
 }
 
-resource "aws_subnet" "main_subnet" {
-  vpc_id = aws_vpc.render_farm_vpc.id
-  cidr_block = var.vpc_cidr
-  availability_zone = var.availability_zone
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "Main"
-  }
-}
-
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.render_farm_vpc.id
-
-  tags = {
-    Name = "main"
-  }
-}
-
-resource "aws_route" "internet_access" {
-  route_table_id         = aws_vpc.render_farm_vpc.main_route_table_id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.gw.id
+module "node_iam_role" {
+  source = "./modules/node_iam_role"
 }
 
 # Bucket for uploading blends and storing render output
@@ -58,7 +38,7 @@ resource "aws_s3_bucket" "render_bucket" {
 
 resource "aws_security_group" "ssh" {
   name = "allow_ssh"
-  vpc_id = aws_vpc.render_farm_vpc.id
+  vpc_id = module.network.vpc_id
 
   ingress {
     from_port = 22
@@ -77,7 +57,7 @@ resource "aws_security_group" "ssh" {
 
 resource "aws_security_group" "nfs" {
   name = "NFS"
-  vpc_id = aws_vpc.render_farm_vpc.id
+  vpc_id = module.network.vpc_id
 
   ingress {
     from_port = 2049
@@ -122,119 +102,14 @@ resource "aws_efs_file_system" "shared_render_vol" {
 
 resource "aws_efs_mount_target" "shared_mount" {
   file_system_id = aws_efs_file_system.shared_render_vol.id
-  subnet_id      = aws_subnet.main_subnet.id
+  subnet_id      = module.network.subnet_id
 
   security_groups = [aws_security_group.nfs.id]
 }
 
-# Build IAM profile for worker nodes
-
 resource "aws_iam_instance_profile" "render_node_profile" {
   name = "render_node_profile"
-  role = aws_iam_role.render_node_role.name
-}
-
-resource "aws_iam_role" "render_node_role" {
-  name = "render_node_role"
-
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_policy" "render_node_sqs_policy" {
-  name = "render_node_sqs_policy"
-  path = "/"
-  description = "SQS access for grabbing frames/blendfiles"
-  policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "sqs:*"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        }
-    ]
-}
-EOF
-}
-
-resource "aws_iam_policy" "render_node_s3_policy" {
-  name = "render_node_s3_policy"
-  path = "/"
-  description = "S3 access for grabbing blendfiles and storing render output"
-  policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "s3:*"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        }
-    ]
-}
-EOF
-}
-
-resource "aws_iam_policy" "render_node_autoscale_policy" {
-  name = "render_node_autoscale_policy"
-  path = "/"
-  description = "Autoscale access for protecting from scale-in during render"
-  policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": "autoscaling:*",
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "iam:CreateServiceLinkedRole",
-            "Resource": "*",
-            "Condition": {
-                "StringEquals": {
-                    "iam:AWSServiceName": "autoscaling.amazonaws.com"
-                }
-            }
-        }
-    ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "sqs_attach_policy" {
-  role = aws_iam_role.render_node_role.name
-  policy_arn = aws_iam_policy.render_node_sqs_policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "s3_attach_policy" {
-  role = aws_iam_role.render_node_role.name
-  policy_arn = aws_iam_policy.render_node_s3_policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "autoscale_attach_policy" {
-  role = aws_iam_role.render_node_role.name
-  policy_arn = aws_iam_policy.render_node_autoscale_policy.arn
+  role = module.node_iam_role.name
 }
 
 # Launch templates for worker types
@@ -303,7 +178,7 @@ resource "aws_launch_template" "init_node_template" {
 
 resource "aws_autoscaling_group" "render_workers" {
   name = var.render_worker_asg_name
-  vpc_zone_identifier = [aws_subnet.main_subnet.id]
+  vpc_zone_identifier = [module.network.subnet_id]
   max_size = var.render_node_max_count
   min_size = 0
 
@@ -361,7 +236,7 @@ resource "aws_autoscaling_policy" "render_worker_autoscaling_policy" {
 
 resource "aws_autoscaling_group" "render_initializers" {
   name = var.render_init_asg_name
-  vpc_zone_identifier = [aws_subnet.main_subnet.id]
+  vpc_zone_identifier = [module.network.subnet_id]
   max_size = 2
   min_size = 0
 
