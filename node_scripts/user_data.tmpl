@@ -36,12 +36,17 @@ Content-Disposition: attachment; filename="userdata.txt"
 export REGION=${region}
 export BUCKET=${bucket}
 export FRAME_QUEUE=${frame_queue_url}
-export FRAME_QUEUE_ASG=${frame_queue_asg}
 export PROJECT_INIT_QUEUE=${project_init_queue_url}
-export PROJECT_INIT_QUEUE_ASG=${project_init_queue_asg}
+export ASG_NAME=${asg_name}
 
 tee init_script.rb <<EOF
 ${init_script}
+EOF
+
+mkdir /blender_scripts
+
+tee /blender_scripts/bake_smoke.py <<EOF
+${blender_bake_smoke}
 EOF
 
 ruby ./init_script.rb

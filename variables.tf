@@ -18,21 +18,15 @@ variable "project_init_queue_bpi" {
 }
 
 # Maximum number of render nodes in farm
-variable "render_node_max_count" {
+variable "worker_node_max_count" {
   type = number
   default = 20
 }
 
 # Render worker ASG name
-variable "render_worker_asg_name" {
+variable "worker_asg_name" {
   type = string
   default = "render_workers"
-}
-
-# Init worker ASG name
-variable "render_init_asg_name" {
-  type = string
-  default = "render_initializers"
 }
 
 variable "region" {

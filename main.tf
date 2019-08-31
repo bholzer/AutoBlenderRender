@@ -19,7 +19,7 @@ data "archive_file" "s3_upload_handler" {
 module "network" {
   source = "./modules/network"
 
-  availibility_zone = var.availability_zone
+  availability_zone = var.availability_zone
   vpc_cidr = var.vpc_cidr
 }
 
@@ -114,8 +114,8 @@ resource "aws_iam_instance_profile" "render_node_profile" {
 
 # Launch templates for worker types
 
-resource "aws_launch_template" "render_node_template" {
-  name = "render_node_template"
+resource "aws_launch_template" "worker_node_template" {
+  name = "worker_node_template"
   block_device_mappings {
     device_name = "/dev/sda1"
 
@@ -134,58 +134,27 @@ resource "aws_launch_template" "render_node_template" {
   }
 
   user_data = base64encode(templatefile("./node_scripts/user_data.tmpl", {
-    init_script = file("./node_scripts/queue_renderer.rb"),
+    init_script = file("./node_scripts/farm_worker.rb"),
+    blender_bake_smoke = file("./node_scripts/blender_scripts/bake_smoke.py"),
     region = var.region,
     bucket = aws_s3_bucket.render_bucket.id,
     frame_queue_url = aws_sqs_queue.frame_render_queue.id,
-    frame_queue_asg = var.render_worker_asg_name,
     project_init_queue_url = aws_sqs_queue.project_init_queue.id,
-    project_init_queue_asg = var.render_init_asg_name,
+    asg_name = var.worker_asg_name,
     shared_file_system_id = aws_efs_file_system.shared_render_vol.id
   }))
 }
 
-resource "aws_launch_template" "init_node_template" {
-  name = "init_node_template"
-  block_device_mappings {
-    device_name = "/dev/sda1"
-
-    ebs {
-      volume_size = 10
-    }
-  }
-
-  image_id = var.blender_node_image_id
-  vpc_security_group_ids = [aws_security_group.ssh.id, aws_security_group.nfs.id]
-
-  iam_instance_profile {
-    name = aws_iam_instance_profile.render_node_profile.name
-  }
-
-  key_name = var.node_key_name
-
-  user_data = base64encode(templatefile("./node_scripts/user_data.tmpl", {
-    init_script = file("./node_scripts/project_init.rb"),
-    region = var.region,
-    bucket = aws_s3_bucket.render_bucket.id,
-    frame_queue_url = aws_sqs_queue.frame_render_queue.id,
-    frame_queue_asg = var.render_worker_asg_name,
-    project_init_queue_url = aws_sqs_queue.project_init_queue.id,
-    project_init_queue_asg = var.render_init_asg_name,
-    shared_file_system_id = aws_efs_file_system.shared_render_vol.id
-  }))
-}
-
-resource "aws_autoscaling_group" "render_workers" {
-  name = var.render_worker_asg_name
+resource "aws_autoscaling_group" "worker_nodes" {
+  name = var.worker_asg_name
   vpc_zone_identifier = [module.network.subnet_id]
-  max_size = var.render_node_max_count
+  max_size = var.worker_node_max_count
   min_size = 0
 
   mixed_instances_policy {
     launch_template {
       launch_template_specification {
-        launch_template_id = aws_launch_template.render_node_template.id
+        launch_template_id = aws_launch_template.worker_node_template.id
         version = "$Latest"
       }
 
@@ -212,76 +181,18 @@ resource "aws_autoscaling_group" "render_workers" {
   }
 }
 
-resource "aws_autoscaling_policy" "render_worker_autoscaling_policy" {
-  name = "render_worker_autoscaling_policy"
+resource "aws_autoscaling_policy" "worker_node_autoscaling_policy" {
+  name = "worker_node_autoscaling_policy"
   adjustment_type = "PercentChangeInCapacity"
   policy_type = "TargetTrackingScaling"
-  autoscaling_group_name = aws_autoscaling_group.render_workers.name
+  autoscaling_group_name = aws_autoscaling_group.worker_nodes.name
 
   target_tracking_configuration {
-    target_value = var.frame_queue_bpi
+    target_value = 2
     customized_metric_specification {
       metric_dimension {
         name = "Queue"
-        value = aws_autoscaling_group.render_workers.name
-      }
-
-      metric_name = "BacklogPerInstance"
-      namespace = var.cloudwatch_namespace
-      statistic = "Average"
-      unit = "None"
-    }
-  }
-}
-
-resource "aws_autoscaling_group" "render_initializers" {
-  name = var.render_init_asg_name
-  vpc_zone_identifier = [module.network.subnet_id]
-  max_size = 2
-  min_size = 0
-
-  mixed_instances_policy {
-    launch_template {
-      launch_template_specification {
-        launch_template_id = aws_launch_template.init_node_template.id
-        version = "$Latest"
-      }
-
-      override {
-        instance_type = "c5.9xlarge"
-      }
-
-      override {
-        instance_type = "c4.8xlarge"
-      }
-
-      override {
-        instance_type = "c5n.9xlarge"
-      }
-
-      override {
-        instance_type = "c5.4xlarge"
-      }
-    }
-    instances_distribution {
-      spot_instance_pools = 1
-      on_demand_percentage_above_base_capacity = 10
-    }
-  }
-}
-
-resource "aws_autoscaling_policy" "render_initializer_autoscaling_policy" {
-  name = "render_initializer_autoscaling_policy"
-  adjustment_type = "PercentChangeInCapacity"
-  policy_type = "TargetTrackingScaling"
-  autoscaling_group_name = aws_autoscaling_group.render_initializers.name
-
-  target_tracking_configuration {
-    target_value = var.project_init_queue_bpi
-    customized_metric_specification {
-      metric_dimension {
-        name = "Queue"
-        value = aws_autoscaling_group.render_initializers.name
+        value = aws_autoscaling_group.worker_nodes.name
       }
 
       metric_name = "BacklogPerInstance"
@@ -352,11 +263,10 @@ resource "aws_lambda_function" "bpi_metric_emitter" {
   environment {
     variables = {
       CLOUDWATCH_NAMESPACE = var.cloudwatch_namespace
+      ASG_NAME = aws_autoscaling_group.worker_nodes.name
       FRAME_QUEUE = aws_sqs_queue.frame_render_queue.id
-      FRAME_QUEUE_ASG = aws_autoscaling_group.render_workers.name
       FRAME_QUEUE_BPI = var.frame_queue_bpi
       PROJECT_INIT_QUEUE = aws_sqs_queue.project_init_queue.id
-      PROJECT_INIT_QUEUE_ASG = aws_autoscaling_group.render_initializers.name
       PROJECT_INIT_QUEUE_BPI = var.project_init_queue_bpi
     }
   }
