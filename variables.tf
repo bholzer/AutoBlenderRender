@@ -23,6 +23,11 @@ variable "worker_node_max_count" {
   default = 20
 }
 
+variable "instance_types" {
+  type = list(string)
+  default = ["c5.9xlarge", "c4.8xlarge", "c5n.9xlarge", "c5.4xlarge"]
+}
+
 # Render worker ASG name
 variable "worker_asg_name" {
   type = string

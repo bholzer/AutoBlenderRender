@@ -33,24 +33,16 @@ resource "aws_autoscaling_group" "worker_nodes" {
         version = "$Latest"
       }
 
-      override {
-        instance_type = "c5.9xlarge"
-      }
+      dynamic "override" {
+        for_each = [for it in var.instance_types: {instance_type = it}]
 
-      override {
-        instance_type = "c4.8xlarge"
-      }
-
-      override {
-        instance_type = "c5n.9xlarge"
-      }
-
-      override {
-        instance_type = "c5.4xlarge"
+        content {
+          instance_type = override.value.instance_type
+        }
       }
     }
     instances_distribution {
-      spot_instance_pools = 4
+      spot_instance_pools = length(var.instance_types)
       on_demand_percentage_above_base_capacity = 10
     }
   }

@@ -21,7 +21,7 @@ resource "random_string" "random_bucket_name" {
 }
 
 resource "aws_s3_bucket" "render_bucket" {
-  bucket = var.render_bucket_name != "" ? random_string.random_bucket_name : var.render_bucket_name
+  bucket = var.render_bucket_name != "" ? random_string.random_bucket_name.result : var.render_bucket_name
   acl    = "private"
 }
 
@@ -116,6 +116,7 @@ module "worker_node" {
     shared_file_system_id = aws_efs_file_system.shared_render_vol.id
   }))
 
+  instance_types = var.instance_types
   asg_name = var.worker_asg_name
   asg_subnets = [module.network.subnet_id]
   asg_max_workers = var.worker_node_max_count
