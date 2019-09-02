@@ -100,3 +100,8 @@ resource "aws_iam_role_policy_attachment" "autoscale_attach_policy" {
   role = aws_iam_role.render_node_role.name
   policy_arn = aws_iam_policy.render_node_autoscale_policy.arn
 }
+
+resource "aws_iam_instance_profile" "render_node_profile" {
+  name = "render_node_profile"
+  role = aws_iam_role.render_node_role.name
+}
