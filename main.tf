@@ -3,6 +3,8 @@ provider "aws" {
   region = var.region
 }
 
+data "aws_caller_identity" "current" {}
+
 module "network" {
   source = "./modules/network"
 
@@ -142,3 +144,36 @@ module "bucket_upload_listener" {
   bucket_arn = aws_s3_bucket.render_bucket.arn
   project_init_queue = aws_sqs_queue.project_init_queue.id
 }
+
+resource "aws_dynamodb_table" "projects_table" {
+  name = "FarmProjects"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key = "ProjectName"
+
+  attribute {
+    name = "ProjectName"
+    type = "S"
+  }
+}
+
+resource "aws_dynamodb_table" "application_settings" {
+  name = "FarmApplicationSettings"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key = "SettingName"
+
+  attribute {
+    name = "SettingName"
+    type = "S"
+  }
+}
+
+module "api" {
+  source = "./modules/api"
+
+  region = var.region
+  dynamo_tables = {
+    projects = aws_dynamodb_table.projects_table.name,
+    application_settings = aws_dynamodb_table.application_settings.name
+  }
+}
+
