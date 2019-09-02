@@ -14,10 +14,14 @@ module "node_iam_role" {
   source = "./modules/node_iam_role"
 }
 
-# Bucket for uploading blends and storing render output
+resource "random_string" "random_bucket_name" {
+  length = 16
+  special = false
+  number = false
+}
 
 resource "aws_s3_bucket" "render_bucket" {
-  bucket = var.render_bucket_name
+  bucket = var.render_bucket_name != "" ? random_string.random_bucket_name : var.render_bucket_name
   acl    = "private"
 }
 

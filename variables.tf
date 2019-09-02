@@ -50,6 +50,7 @@ variable "node_key_name" {
 
 variable "render_bucket_name" {
   type = string
+  default = ""
   description = "Bucket name must be globally unique. Will be where blend files are uploaded and frames are rendered to"
 }
 
