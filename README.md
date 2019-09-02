@@ -6,7 +6,25 @@ This project uses Terraform and AWS to build the infrastructure necessary to aut
 
 Uses AWS and Terraform to build the infrastructure and kick off bake/render jobs.
 
-To get started, you must have an AWS account with a payment method, and Terraform installed. https://www.terraform.io/
+Get Started
+---
+
+This project has some dependencies:
+
+- Paid AWS account (https://aws.amazon.com/)
+- Terraform (https://www.terraform.io/)
+
+How to build the farm:
+
+ - Follow the instructions from AWS to set up your AWS credentials: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
+ - Download this project
+ - From the project directory: `terraform apply` and confirm. Before confirming, you can thoroughly investigate the output if you are interested knowing all of the resources being created.
+
+How to use the farm:
+
+Uploading a blend file to the created S3 bucket some metadata will kick off baking and rendering. If you use the AWS CLI: `aws s3 cp ~/Documents/blender/fire.blend s3://my_bucket/fire/fire.blend --metadata start_frame=1,end_frame=50`
+
+Now, you should start seeing rendered frames output to the same S3 bucket.
 
 This configuration creates a few resources for automating the bake and render process:
 
@@ -38,6 +56,8 @@ EC2
 
 Creates a launch template, autoscaling group and autoscaling policy. The launch template loads code onto the workers that pull jobs from the SQS queues. The autoscaling policy uses the queue sizes to determine scale.
 
+The launch template also uses spot instances to keep costs very low.
+
 TODO: fix the autoscale policy; it is too aggressive
 
 Cloudwatch
@@ -53,6 +73,7 @@ Lambda
 Two functions are created:
 
 bpi_emitter: calculates and emits the BPI metric every minute
+
 bucket_upload_listener: listens for s3 upload events to then send jobs to the queue
 
 Variables:
