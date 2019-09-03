@@ -107,7 +107,7 @@ class FramePoller < JobPoller
       output_file_name = "#{frame.rjust(4, "0")}.png"
       output_dir = '/tmp'
 
-      blender_command = "/home/ec2-user/blender/blender --background #{blendfile_path} --use-extension 1 -noaudio -E CYCLES -t 0 -o #{output_dir}/ -F PNG -f #{frame}"
+      blender_command = "/home/ec2-user/blender/blender --background #{local_project_blendfile(project_id)} --use-extension 1 -noaudio -E CYCLES -t 0 -o #{output_dir}/ -F PNG -f #{frame}"
       system(blender_command)
       @bucket.object("#{project_id}/#{render_task_id}/#{output_file_name}").upload_file(File.join(output_dir, output_file_name))
       @poller.delete_message(msg)
