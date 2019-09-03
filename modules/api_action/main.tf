@@ -123,6 +123,11 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_log_attach_policy" {
   policy_arn = aws_iam_policy.cloudwatch_log_policy.arn
 }
 
+resource "aws_iam_role_policy_attachment" "s3_attach_policy" {
+  role = aws_iam_role.lambda_action_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
 data "archive_file" "lambda_zip" {
   type = "zip"
   source_file = "${path.root}/src/api/${var.controller}/${var.action}.rb"
@@ -138,7 +143,8 @@ resource "aws_lambda_function" "lambda_action" {
 
   environment {
     variables = merge({
-      REGION = var.region
+      REGION = var.region,
+      BUCKET = var.bucket
     }, {
       for table in keys(var.dynamo_tables):
         "${upper(table)}_TABLE" => lookup(var.dynamo_tables, table)

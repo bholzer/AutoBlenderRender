@@ -30,3 +30,7 @@ variable "region" {
 variable "dynamo_tables" {
   type = map
 }
+
+variable "bucket" {
+  type = string
+}

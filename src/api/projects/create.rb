@@ -1,15 +1,20 @@
 require 'json'
 require 'aws-sdk'
+require 'securerandom'
 
 def lambda_handler(event:, context:)
     # Get all projects for this user from dynamo
     db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
+    s3_client = Aws::S3::Client.new()
+    bucket = Aws::S3::Bucket.new(ENV["BUCKET"], client: s3_client)
     request_body = event["body"] ? JSON.parse(event["body"]) : nil
     item = {
-      "ProjectName": request_body["name"]
+      "ProjectName" => request_body["name"],
+      "ProjectId" => SecureRandom.uuid
     }
   begin
     db.put_item(table_name: ENV['PROJECTS_TABLE'], item: item)
+    bucket.put_object(key: "#{item['ProjectId']}/")
     { statusCode: 200, body: JSON.generate(item) }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
     puts 'Unable to create project:'

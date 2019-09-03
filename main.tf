@@ -148,10 +148,10 @@ module "bucket_upload_listener" {
 resource "aws_dynamodb_table" "projects_table" {
   name = "FarmProjects"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key = "ProjectName"
+  hash_key = "ProjectId"
 
   attribute {
-    name = "ProjectName"
+    name = "ProjectId"
     type = "S"
   }
 }
@@ -171,6 +171,7 @@ module "api" {
   source = "./modules/api"
 
   region = var.region
+  bucket = aws_s3_bucket.render_bucket.id
   dynamo_tables = {
     projects = aws_dynamodb_table.projects_table.name,
     application_settings = aws_dynamodb_table.application_settings.name
