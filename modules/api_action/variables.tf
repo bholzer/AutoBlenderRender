@@ -34,3 +34,11 @@ variable "dynamo_tables" {
 variable "bucket" {
   type = string
 }
+
+variable "frame_queue" {
+  type = string
+}
+
+variable "project_init_queue" {
+  type = string
+}

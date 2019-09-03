@@ -11,14 +11,14 @@ def lambda_handler(event:, context:)
     start_frame = metadata['start_frame']
     end_frame = metadata['end_frame']
 
-    if start_frame && end_frame
-      message_attributes = {
-        "blendfile_key" => {
-          string_value: object_key,
-          data_type: "String"
-        }
+    message_attributes = {
+      "blendfile_key" => {
+        string_value: object_key,
+        data_type: "String"
       }
+    }
 
+    if start_frame && end_frame
       message_attributes["start_frame"] = {
         string_value: start_frame,
         data_type: "String"
@@ -28,13 +28,13 @@ def lambda_handler(event:, context:)
         string_value: end_frame,
         data_type: "String"
       }
-
-      render_init_q = Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"])
-      render_init_q.send_message({
-        message_body: "Blender Project Init",
-        message_attributes: message_attributes
-      })
     end
+
+    render_init_q = Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"])
+    render_init_q.send_message({
+      message_body: "Blender Project Init",
+      message_attributes: message_attributes
+    })
   end
 
   # TODO implement

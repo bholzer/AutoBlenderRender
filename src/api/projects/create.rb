@@ -14,7 +14,6 @@ def lambda_handler(event:, context:)
     }
   begin
     db.put_item(table_name: ENV['PROJECTS_TABLE'], item: item)
-    bucket.put_object(key: "#{item['ProjectId']}/")
     { statusCode: 200, body: JSON.generate(item) }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
     puts 'Unable to create project:'

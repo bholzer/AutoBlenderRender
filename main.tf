@@ -172,6 +172,9 @@ module "api" {
 
   region = var.region
   bucket = aws_s3_bucket.render_bucket.id
+  frame_queue = aws_sqs_queue.frame_render_queue.id
+  project_init_queue = aws_sqs_queue.project_init_queue.id
+
   dynamo_tables = {
     projects = aws_dynamodb_table.projects_table.name,
     application_settings = aws_dynamodb_table.application_settings.name

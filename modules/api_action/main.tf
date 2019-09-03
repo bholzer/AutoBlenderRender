@@ -25,7 +25,7 @@ resource "aws_lambda_permission" "lambda_action_permission" {
 }
 
 resource "aws_iam_role" "lambda_action_role" {
-  name = "lambda_action_role-${var.controller}${var.method}"
+  name = "lambda_action_role-${var.controller}${var.method}${var.action}"
 
     assume_role_policy = <<EOF
 {
@@ -45,7 +45,7 @@ EOF
 }
 
 resource "aws_iam_policy" "dynamo_table_policy" {
-  name        = "dynamoTablePolicy${var.controller}${var.method}"
+  name        = "dynamoTablePolicy${var.controller}${var.method}${var.action}"
   path        = "/"
   description = "Dyanmo Access"
 
@@ -88,7 +88,7 @@ EOF
 }
 
 resource "aws_iam_policy" "cloudwatch_log_policy" {
-  name        = "cloudwatchLogPolicy${var.controller}${var.method}"
+  name        = "cloudwatchLogPolicy${var.controller}${var.method}${var.action}"
   path        = "/"
   description = "Policy for creating cloudwatch logs"
 
@@ -128,6 +128,11 @@ resource "aws_iam_role_policy_attachment" "s3_attach_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
+resource "aws_iam_role_policy_attachment" "sqs_attach_policy" {
+  role = aws_iam_role.lambda_action_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+}
+
 data "archive_file" "lambda_zip" {
   type = "zip"
   source_file = "${path.root}/src/api/${var.controller}/${var.action}.rb"
@@ -144,7 +149,9 @@ resource "aws_lambda_function" "lambda_action" {
   environment {
     variables = merge({
       REGION = var.region,
-      BUCKET = var.bucket
+      BUCKET = var.bucket,
+      FRAME_QUEUE = var.frame_queue,
+      PROJECT_INIT_QUEUE = var.project_init_queue
     }, {
       for table in keys(var.dynamo_tables):
         "${upper(table)}_TABLE" => lookup(var.dynamo_tables, table)

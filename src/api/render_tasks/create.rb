@@ -5,14 +5,16 @@ require 'securerandom'
 def lambda_handler(event:, context:)
     # Get all projects for this user from dynamo
     db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
+    frame_q = Aws::SQS::Queue.new(ENV["FRAME_QUEUE"])
     request_body = event["body"] ? JSON.parse(event["body"]) : nil
 
     puts event.inspect
 
     new_task = {
     	"StartedAt" => Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
-    	"StartFrame" => 1,
-    	"EndFrame" => 50
+    	"StartFrame" => request_body["start_frame"],
+    	"EndFrame" => request_body["end_frame"],
+    	"RenderTaskId" => SecureRandom.uuid
     }
 
   begin
@@ -31,6 +33,31 @@ def lambda_handler(event:, context:)
     		":RenderTask" => [new_task]
     	}
     })
+
+    if new_task["StartFrame"] && new_task["EndFrame"]
+      puts "Sending render messages..."
+      (new_task["StartFrame"]..new_task["EndFrame"]).each do |frame|
+        frame_q.send_message(
+          message_body: 'Render Frame Triggered By Render Task',
+          message_attributes: {
+            "project_id"=> {
+              string_value: event["pathParameters"]["project_id"],
+              data_type: "String"
+            },
+            "frame"=>{
+              string_value: frame.to_s,
+              data_type: "String"
+            },
+            "render_task_id"=>{
+            	string_value: new_task["RenderTaskId"],
+            	data_type: "String"
+            }
+          }
+        )
+      end
+      puts "Render messages sent"
+    end
+
     { statusCode: 200, body: JSON.generate(res.attributes) }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
     puts 'Unable to create project:'
