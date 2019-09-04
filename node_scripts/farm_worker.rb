@@ -4,6 +4,7 @@ require 'aws-sdk-s3'
 require 'aws-sdk-autoscaling'
 require 'aws-sdk-sqs'
 require 'aws-sdk-ec2'
+require 'aws-sdk-dynamodb'
 require 'fileutils'
 require 'zlib'
 require 'rubygems/package'
@@ -35,9 +36,8 @@ class InstanceProtector
 end
 
 class JobPoller
-  def initialize(queue)
+  def initialize
     Aws.config.update(region: ENV["REGION"])
-    @poller = Aws::SQS::QueuePoller.new(queue)
     s3_client = Aws::S3::Client.new()
     @bucket = Aws::S3::Bucket.new(ENV["BUCKET"], client: s3_client)
   end
@@ -60,27 +60,19 @@ class JobPoller
       blendfile.get(response_target: File.join(EFS_MOUNT, blendfile.key))
     end
   end
-
-  def poll
-    @poller.poll(skip_delete: true) do |msg|
-      attrs = msg.message_attributes
-      project_id = attrs["project_id"].string_value
-      InstanceProtector.protect
-
-      persist_project_from_s3(project_id) # Persisting locally to shared volume
-      
-      yield(msg)
-      InstanceProtector.protect(false)
-    end
-  end
 end
 
 class BakePoller < JobPoller
   BLENDER_SCRIPTS_LOCATION = "/blender_scripts"
   def start
-    self.poll do |msg|
+    poller = Aws::SQS::QueuePoller.new(ENV["PROJECT_INIT_QUEUE"])
+    poller.poll do |msg|
       attrs = msg.message_attributes
       project_id = attrs["project_id"].string_value
+
+      InstanceProtector.protect
+
+      persist_project_from_s3(project_id)
 
       Dir.glob("#{BLENDER_SCRIPTS_LOCATION}/*.py").each do |blender_script_file|
         puts "Running blender..."
@@ -89,28 +81,52 @@ class BakePoller < JobPoller
         puts "Blender command complete"
       end
 
-      @poller.delete_message(msg)
+      poller.delete_message(msg)
+
+      InstanceProtector.protect(false)
     end
   end
 end
 
 class FramePoller < JobPoller
   def start
-    self.poll do |msg|
-      attrs = msg.message_attributes
-      frame = attrs["frame"].string_value
-      project_id = attrs["project_id"].string_value
-      render_task_id = attrs["render_task_id"].string_value
+    db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
+    mutex = Mutex.new
+    client = Aws::SQS::Client.new
+    sqs = Aws::SQS::Resource.new(client: client)
 
-      puts "Got frame #{frame} for project #{project_id}"
+    loop do
+      threads = sqs.queues(queue_name_prefix: "RenderTask").map do |queue|
+        Thread.new do
+          mutex.synchronize do
+            msg = queue.receive_messages.first
+            if msg
+              InstanceProtector.protect
+              attrs = msg.message_attributes
+              frame = attrs["frame"].string_value
+              project_id = attrs["project_id"].string_value
+              render_task_id = attrs["render_task_id"].string_value
 
-      output_file_name = "#{frame.rjust(4, "0")}.png"
-      output_dir = '/tmp'
+              puts "Got frame #{frame} for project #{project_id}"
 
-      blender_command = "/home/ec2-user/blender/blender --background #{local_project_blendfile(project_id)} --use-extension 1 -noaudio -E CYCLES -t 0 -o #{output_dir}/ -F PNG -f #{frame}"
-      system(blender_command)
-      @bucket.object("#{project_id}/#{render_task_id}/#{output_file_name}").upload_file(File.join(output_dir, output_file_name))
-      @poller.delete_message(msg)
+              persist_project_from_s3(project_id)
+              output_file_name = "#{frame.rjust(4, "0")}.png"
+              output_dir = '/tmp'
+
+              blender_command = "/home/ec2-user/blender/blender --background #{local_project_blendfile(project_id)} --use-extension 1 -noaudio -E CYCLES -t 0 -o #{output_dir}/ -F PNG -f #{frame}"
+              system(blender_command)
+              @bucket.object("#{project_id}/#{render_task_id}/#{output_file_name}").upload_file(File.join(output_dir, output_file_name))
+              queue.delete_messages({
+                entries: [{id: msg.message_id, receipt_handle: msg.receipt_handle }]
+              })
+              InstanceProtector.protect(false)
+            end
+          end
+        end
+      end
+
+      threads.each(&:join)
+      sleep(10)
     end
   end
 end
@@ -119,8 +135,8 @@ class FarmWorker
   def self.start
     puts "Farm worker started"
     threads = []
-    threads << Thread.new { BakePoller.new(ENV["PROJECT_INIT_QUEUE"]).start }
-    threads << Thread.new { FramePoller.new(ENV["FRAME_QUEUE"]).start }
+    threads << Thread.new { BakePoller.new.start }
+    threads << Thread.new { FramePoller.new.start }
     threads.each(&:join)
   end
 end

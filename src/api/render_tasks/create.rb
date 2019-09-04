@@ -5,16 +5,20 @@ require 'securerandom'
 def lambda_handler(event:, context:)
     # Get all projects for this user from dynamo
     db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
-    frame_q = Aws::SQS::Queue.new(ENV["FRAME_QUEUE"])
+    sqs = Aws::SQS::Client.new(region: ENV["REGION"])
+
     request_body = event["body"] ? JSON.parse(event["body"]) : nil
 
     puts event.inspect
+
+    render_task_id = SecureRandom.uuid
 
     new_task = {
     	"StartedAt" => Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
     	"StartFrame" => request_body["start_frame"],
     	"EndFrame" => request_body["end_frame"],
-    	"RenderTaskId" => SecureRandom.uuid
+    	"RenderTaskId" => render_task_id,
+      "QueueUrl" => sqs.create_queue("RenderTask#{render_task_id}").queue_url
     }
 
   begin
@@ -37,6 +41,7 @@ def lambda_handler(event:, context:)
     if new_task["StartFrame"] && new_task["EndFrame"]
       puts "Sending render messages..."
       (new_task["StartFrame"]..new_task["EndFrame"]).each do |frame|
+        frame_q = Aws::SQS::Queue.new(new_task["QueueUrl"])
         frame_q.send_message(
           message_body: 'Render Frame Triggered By Render Task',
           message_attributes: {
@@ -49,7 +54,7 @@ def lambda_handler(event:, context:)
               data_type: "String"
             },
             "render_task_id"=>{
-            	string_value: new_task["RenderTaskId"],
+            	string_value: render_task_id,
             	data_type: "String"
             }
           }
