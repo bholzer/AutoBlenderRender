@@ -55,7 +55,7 @@ resource "aws_autoscaling_policy" "worker_node_autoscaling_policy" {
   autoscaling_group_name = aws_autoscaling_group.worker_nodes.name
 
   target_tracking_configuration {
-    target_value = 2
+    target_value = 0.001
     customized_metric_specification {
       metric_dimension {
         name = "Queue"

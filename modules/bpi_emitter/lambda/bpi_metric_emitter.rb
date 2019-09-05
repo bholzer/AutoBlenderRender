@@ -7,26 +7,19 @@ require 'aws-sdk'
 
 def lambda_handler(event:, context:)
     cloudwatch_client = Aws::CloudWatch::Client.new()
+    client = Aws::SQS::Client.new
+    sqs = Aws::SQS::Resource.new(client: client)
+    render_task_queues = sqs.queues(queue_name_prefix: "RenderTask")
+    project_init_q = Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"])
     asg_name = ENV["ASG_NAME"]
-    queues_to_scale_by = [
-        {
-            url: ENV["FRAME_QUEUE"],
-            bpi: ENV["FRAME_QUEUE_BPI"]
-        },
-        {
-            url: ENV["PROJECT_INIT_QUEUE"],
-            bpi: ENV["PROJECT_INIT_QUEUE_BPI"]
-        }
-    ]
     
-    combined_bpi = queues_to_scale_by.map do |queue|
-      q = Aws::SQS::Queue.new(queue[:url])
-      queue_size = q.attributes["ApproximateNumberOfMessages"].to_f
+    combined_bpi = (render_task_queues.to_a + [project_init_q]).map do |queue|
+      queue_size = queue.attributes["ApproximateNumberOfMessages"].to_f
       group_capacity = Aws::AutoScaling::AutoScalingGroup.new(asg_name).instances.select{|i| i.lifecycle_state == 'InService' }.count.to_f
       if queue_size == 0
         0
       else
-        group_capacity > 0 ? queue_size/group_capacity : queue[:bpi].to_f+0.2 # Fake BPI threshold to kickoff task if capacity 0
+        group_capacity > 0 ? queue_size/group_capacity : 0.1 # Fake BPI threshold to kickoff task if capacity 0
       end
     end.sum
 

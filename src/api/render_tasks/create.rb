@@ -18,7 +18,7 @@ def lambda_handler(event:, context:)
     	"StartFrame" => request_body["start_frame"],
     	"EndFrame" => request_body["end_frame"],
     	"RenderTaskId" => render_task_id,
-      "QueueUrl" => sqs.create_queue("RenderTask#{render_task_id}").queue_url
+      "QueueUrl" => sqs.create_queue(queue_name: "RenderTask#{render_task_id}").queue_url
     }
 
   begin

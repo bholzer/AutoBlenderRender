@@ -4,7 +4,6 @@ require 'aws-sdk-s3'
 require 'aws-sdk-autoscaling'
 require 'aws-sdk-sqs'
 require 'aws-sdk-ec2'
-require 'aws-sdk-dynamodb'
 require 'fileutils'
 require 'zlib'
 require 'rubygems/package'
@@ -90,7 +89,6 @@ end
 
 class FramePoller < JobPoller
   def start
-    db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
     mutex = Mutex.new
     client = Aws::SQS::Client.new
     sqs = Aws::SQS::Resource.new(client: client)
