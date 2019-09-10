@@ -55,8 +55,13 @@ class JobPoller
     if !(File.directory?(local_dir) && local_project_blendfile(project_id))
       FileUtils.mkdir_p(local_dir)
 
-      blendfile = @bucket.objects(prefix: "#{project_id}/").find{|obj| obj.key.match(/[.]blend\d*$/) }
-      blendfile.get(response_target: File.join(EFS_MOUNT, blendfile.key))
+      blendfile = @bucket.objects(prefix: "#{project_id}/").find{|obj| obj.key.match(/\.blend\d*$/) }
+
+      if blendfile
+        blendfile.get(response_target: File.join(EFS_MOUNT, blendfile.key))
+      else
+        puts "Could not find blendfile"
+      end
     end
   end
 end
@@ -97,7 +102,7 @@ class FramePoller < JobPoller
       threads = sqs.queues(queue_name_prefix: "RenderTask").map do |queue|
         Thread.new do
           mutex.synchronize do
-            msg = queue.receive_messages.first
+            msg = queue.receive_messages(message_attribute_names: ["All"]).first
             if msg
               InstanceProtector.protect
               attrs = msg.message_attributes
@@ -124,7 +129,7 @@ class FramePoller < JobPoller
       end
 
       threads.each(&:join)
-      sleep(10)
+      sleep(2)
     end
   end
 end
