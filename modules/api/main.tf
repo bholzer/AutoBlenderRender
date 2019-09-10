@@ -41,6 +41,12 @@ resource "aws_api_gateway_resource" "render_tasks" {
   path_part   = "render_tasks"
 }
 
+resource "aws_api_gateway_resource" "render_task" {
+  rest_api_id = aws_api_gateway_rest_api.farm_api.id
+  parent_id   = aws_api_gateway_resource.render_tasks.id
+  path_part   = "{render_task_id}"
+}
+
 resource "aws_api_gateway_resource" "blendfile_uploader" {
   rest_api_id = aws_api_gateway_rest_api.farm_api.id
   parent_id   = aws_api_gateway_resource.farm_project.id
@@ -120,6 +126,38 @@ module "render_tasks_create_action" {
   action = "create"
   rest_api = aws_api_gateway_rest_api.farm_api
   api_resource = aws_api_gateway_resource.render_tasks
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+}
+
+module "render_tasks_index_action" {
+  source = "../api_action"
+
+  controller = "render_tasks"
+  method = "GET"
+  action = "index"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.render_tasks
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+}
+
+module "render_task_show_action" {
+  source = "../api_action"
+
+  controller = "render_tasks"
+  method = "GET"
+  action = "show"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.render_task
   deployment = aws_api_gateway_deployment.farm_api_deployment
   region = var.region
   dynamo_tables = var.dynamo_tables

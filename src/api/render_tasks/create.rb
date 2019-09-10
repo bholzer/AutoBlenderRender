@@ -3,39 +3,40 @@ require 'aws-sdk'
 require 'securerandom'
 
 def lambda_handler(event:, context:)
-    # Get all projects for this user from dynamo
-    db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
-    sqs = Aws::SQS::Client.new(region: ENV["REGION"])
+  # Get all projects for this user from dynamo
+  db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
+  sqs = Aws::SQS::Client.new(region: ENV["REGION"])
 
-    request_body = event["body"] ? JSON.parse(event["body"]) : nil
+  request_body = event["body"] ? JSON.parse(event["body"]) : nil
 
-    puts event.inspect
+  puts event.inspect
 
-    render_task_id = SecureRandom.uuid
+  render_task_id = SecureRandom.uuid
 
-    new_task = {
-    	"StartedAt" => Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
-    	"StartFrame" => request_body["start_frame"],
-    	"EndFrame" => request_body["end_frame"],
-    	"RenderTaskId" => render_task_id,
-      "QueueUrl" => sqs.create_queue(queue_name: "RenderTask#{render_task_id}").queue_url
-    }
+  new_task = {
+    "Status" => "started",
+    "StartedAt" => Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
+    "StartFrame" => request_body["start_frame"],
+    "EndFrame" => request_body["end_frame"],
+    "RenderTaskId" => render_task_id,
+    "QueueUrl" => sqs.create_queue(queue_name: "RenderTask#{render_task_id}").queue_url
+  }
 
   begin
     res = db.update_item({
-    	table_name: ENV['PROJECTS_TABLE'],
-    	key: {
-    		"ProjectId" => event["pathParameters"]["project_id"]
-    	},
-    	return_values: "ALL_NEW",
-    	update_expression: "set #RenderTasks = list_append(if_not_exists(#RenderTasks, :EmptyList), :RenderTask)",
-    	expression_attribute_names: {
-    		"#RenderTasks" => "RenderTasks"
-    	},
-    	expression_attribute_values: {
-    		":EmptyList" => [],
-    		":RenderTask" => [new_task]
-    	}
+      table_name: ENV['PROJECTS_TABLE'],
+      key: {
+        "ProjectId" => event["pathParameters"]["project_id"]
+      },
+      return_values: "ALL_NEW",
+      update_expression: "set #RenderTasks = list_append(if_not_exists(#RenderTasks, :EmptyList), :RenderTask)",
+      expression_attribute_names: {
+        "#RenderTasks" => "RenderTasks"
+      },
+      expression_attribute_values: {
+        ":EmptyList" => [],
+        ":RenderTask" => [new_task]
+      }
     })
 
     if new_task["StartFrame"] && new_task["EndFrame"]
@@ -54,8 +55,8 @@ def lambda_handler(event:, context:)
               data_type: "String"
             },
             "render_task_id"=>{
-            	string_value: render_task_id,
-            	data_type: "String"
+              string_value: render_task_id,
+              data_type: "String"
             }
           }
         )
