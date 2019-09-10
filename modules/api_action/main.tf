@@ -145,6 +145,7 @@ resource "aws_lambda_function" "lambda_action" {
   role = aws_iam_role.lambda_action_role.arn
   handler = "${var.action}.lambda_handler"
   runtime = "ruby2.5"
+  timeout = 5
 
   environment {
     variables = merge({
