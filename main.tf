@@ -137,13 +137,13 @@ module "bpi_emitter" {
   project_init_queue_bpi = var.project_init_queue_bpi
 }
 
-module "bucket_upload_listener" {
-  source = "./modules/bucket_upload_listener"
+# module "bucket_upload_listener" {
+#   source = "./modules/bucket_upload_listener"
 
-  bucket_name = aws_s3_bucket.render_bucket.id
-  bucket_arn = aws_s3_bucket.render_bucket.arn
-  project_init_queue = aws_sqs_queue.project_init_queue.id
-}
+#   bucket_name = aws_s3_bucket.render_bucket.id
+#   bucket_arn = aws_s3_bucket.render_bucket.arn
+#   project_init_queue = aws_sqs_queue.project_init_queue.id
+# }
 
 resource "aws_dynamodb_table" "projects_table" {
   name = "FarmProjects"
