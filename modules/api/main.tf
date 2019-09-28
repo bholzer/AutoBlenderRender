@@ -101,6 +101,22 @@ module "project_show_action" {
   project_init_queue = var.project_init_queue
 }
 
+module "project_destroy_action" {
+  source = "../api_action"
+
+  controller = "projects"
+  method = "DELETE"
+  action = "destroy"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.farm_project
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+}
+
 
 module "project_blendfile_uploader" {
   source = "../api_action"
