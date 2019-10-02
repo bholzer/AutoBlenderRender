@@ -1,3 +1,9 @@
+data "archive_file" "lambda_zip" {
+  type = "zip"
+  source_dir = "${path.root}/src/worker_node"
+  output_path = "${path.root}/src/worker_node/bundle.zip"
+}
+
 resource "aws_launch_template" "worker_node_template" {
   name = "worker_node_template"
   block_device_mappings {
