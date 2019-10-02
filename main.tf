@@ -16,15 +16,31 @@ module "node_iam_role" {
   source = "./modules/node_iam_role"
 }
 
-resource "random_string" "random_bucket_name" {
+resource "random_string" "random_render_bucket_name" {
+  length = 16
+  special = false
+  number = false
+}
+
+resource "random_string" "random_client_bucket_name" {
   length = 16
   special = false
   number = false
 }
 
 resource "aws_s3_bucket" "render_bucket" {
-  bucket = var.render_bucket_name != "" ? random_string.random_bucket_name.result : var.render_bucket_name
+  bucket = var.render_bucket_name != "" ? random_string.random_render_bucket_name.result : var.render_bucket_name
   acl    = "private"
+}
+
+resource "aws_s3_bucket" "client_bucket" {
+  bucket = "client-bucket123123"
+  acl    = "public-read"
+
+  website {
+    index_document = "index.html"
+    error_document = "error.html"
+  }
 }
 
 # Security groups for the worker nodes
@@ -174,6 +190,7 @@ module "api" {
   bucket = aws_s3_bucket.render_bucket.id
   frame_queue = aws_sqs_queue.frame_render_queue.id
   project_init_queue = aws_sqs_queue.project_init_queue.id
+  client_endpoint = "https://${aws_s3_bucket.client_bucket.website_endpoint}"
 
   dynamo_tables = {
     projects = aws_dynamodb_table.projects_table.name,

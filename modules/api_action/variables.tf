@@ -42,3 +42,11 @@ variable "frame_queue" {
 variable "project_init_queue" {
   type = string
 }
+
+variable "authorization" {
+  type = string
+}
+
+variable "authorizer_id" {
+  type = string
+}

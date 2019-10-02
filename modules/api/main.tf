@@ -17,6 +17,38 @@ resource "aws_api_gateway_deployment" "farm_api_deployment" {
   stage_name  = "prod"
 }
 
+resource "aws_cognito_user_pool" "farm_users_pool" {
+  name = "farm_users"
+}
+
+resource "aws_cognito_user_pool_client" "farm_api_client" {
+  name = "farm_api_client"
+
+  user_pool_id = aws_cognito_user_pool.farm_users_pool.id
+  callback_urls = [var.client_endpoint]
+  allowed_oauth_flows = ["code", "implicit"]
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_scopes = ["phone", "email", "openid", "profile", "aws.cognito.signin.user.admin"]
+  supported_identity_providers = ["COGNITO"]
+}
+
+resource "random_string" "random_domain" {
+  length = 16
+  special = false
+}
+
+resource "aws_cognito_user_pool_domain" "farm_users_pool_domain" {
+  domain       = "fupdomain"
+  user_pool_id = aws_cognito_user_pool.farm_users_pool.id
+}
+
+resource "aws_api_gateway_authorizer" "farm_api_authorizer" {
+  name                   = "farm_api_authorizer"
+  rest_api_id            = aws_api_gateway_rest_api.farm_api.id
+  type                   = "COGNITO_USER_POOLS"
+  provider_arns          = [aws_cognito_user_pool.farm_users_pool.arn]
+}
+
 resource "aws_api_gateway_resource" "farm_projects" {
   rest_api_id = aws_api_gateway_rest_api.farm_api.id
   parent_id   = aws_api_gateway_rest_api.farm_api.root_resource_id
@@ -67,6 +99,8 @@ module "projects_index_action" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }
 
 module "projects_create_action" {
@@ -83,6 +117,8 @@ module "projects_create_action" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }
 
 module "project_show_action" {
@@ -99,6 +135,8 @@ module "project_show_action" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }
 
 module "project_destroy_action" {
@@ -115,6 +153,8 @@ module "project_destroy_action" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }
 
 
@@ -132,6 +172,8 @@ module "project_blendfile_uploader" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }
 
 module "render_tasks_create_action" {
@@ -148,6 +190,8 @@ module "render_tasks_create_action" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }
 
 module "render_tasks_index_action" {
@@ -164,6 +208,8 @@ module "render_tasks_index_action" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }
 
 module "render_task_show_action" {
@@ -180,6 +226,8 @@ module "render_task_show_action" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }
 
 module "bake_tasks_create_action" {
@@ -196,4 +244,6 @@ module "bake_tasks_create_action" {
   bucket = var.bucket
   frame_queue = var.frame_queue
   project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
 }

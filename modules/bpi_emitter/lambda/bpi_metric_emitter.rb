@@ -12,23 +12,18 @@ def lambda_handler(event:, context:)
     render_task_queues = sqs.queues(queue_name_prefix: "RenderTask")
     project_init_q = Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"])
     asg_name = ENV["ASG_NAME"]
-    
-    combined_bpi = (render_task_queues.to_a + [project_init_q]).map do |queue|
-      queue_size = queue.attributes["ApproximateNumberOfMessages"].to_f
-      group_capacity = Aws::AutoScaling::AutoScalingGroup.new(asg_name).instances.select{|i| i.lifecycle_state == 'InService' }.count.to_f
-      if queue_size == 0
-        0
-      else
-        group_capacity > 0 ? queue_size/group_capacity : 0.1 # Fake BPI threshold to kickoff task if capacity 0
-      end
-    end.sum
+
+    combined_message_count = (render_task_queues.to_a + [project_init_q]).map{|q| queue.attributes["ApproximateNumberOfMessages"].to_f }.sum
+    group_capacity = Aws::AutoScaling::AutoScalingGroup.new(asg_name).instances.select{|i| i.lifecycle_state == 'InService' }.count.to_f
+
+    bpi = group_capacity > 0 ? combined_message_count/group_capacity : 1
 
     cloudwatch_client.put_metric_data(
       namespace: ENV["CLOUDWATCH_NAMESPACE"],
       metric_data: [
         {
           metric_name: 'BacklogPerInstance',
-          value: combined_bpi,
+          value: bpi,
           unit: 'None',
           dimensions: [
             name: 'Queue',

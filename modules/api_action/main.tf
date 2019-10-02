@@ -2,7 +2,8 @@ resource "aws_api_gateway_method" "action_method" {
   rest_api_id   = var.rest_api.id
   resource_id   = var.api_resource.id
   http_method   = var.method
-  authorization = "NONE"
+  authorization = var.authorization
+  authorizer_id = var.authorizer_id
 }
 
 resource "aws_api_gateway_integration" "lambda_action_integration" {
