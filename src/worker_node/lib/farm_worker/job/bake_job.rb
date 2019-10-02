@@ -1,5 +1,3 @@
-require 'aws-sdk-sqs'
-
 class FarmWorker::Job::Bake < Job
   BLENDER_SCRIPTS_LOCATION = "/blender_scripts"
   def run
