@@ -5,6 +5,12 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
+resource "random_string" "build_id" {
+  length = 16
+  special = false
+  number = false
+}
+
 module "network" {
   source = "./modules/network"
 
@@ -16,25 +22,18 @@ module "node_iam_role" {
   source = "./modules/node_iam_role"
 }
 
-resource "random_string" "random_render_bucket_name" {
-  length = 16
-  special = false
-  number = false
-}
-
-resource "random_string" "random_client_bucket_name" {
-  length = 16
-  special = false
-  number = false
-}
-
 resource "aws_s3_bucket" "render_bucket" {
-  bucket = var.render_bucket_name != "" ? random_string.random_render_bucket_name.result : var.render_bucket_name
+  bucket = "${random_string.build_id.result}-render-data"
+  acl    = "private"
+}
+
+resource "aws_s3_bucket" "code_bundles_bucket" {
+  bucket = "${random_string.build_id.result}-code-bundles"
   acl    = "private"
 }
 
 resource "aws_s3_bucket" "client_bucket" {
-  bucket = "client-bucket123123"
+  bucket = "${random_string.build_id.result}-client-bucket"
   acl    = "public-read"
 
   website {
