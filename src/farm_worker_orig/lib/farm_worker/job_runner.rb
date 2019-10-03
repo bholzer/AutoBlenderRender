@@ -27,23 +27,14 @@ module FarmWorker
       Hash.new[ message.message_attributes.map{|atr, val| [atr, val.string_value] } ]
     end
 
-    def job_class_by_type(job_type)
-      case job_type
-      when :render
-        FarmWorker::Job::Render
-      when :bake
-        FarmWorker::Job::Bake
-      end
-    end
-
-    def generate_job_thread_for_queue(job_type, queue)
+    def generate_job_thread_for_queue(queue)
       Thread.new do
         @mutex.synchronize do
           message = get_message_from_queue(queue)
           if message
             message_attributes = message_attributes_to_hash(message)
             @instance_protector.protect do
-              job = job_class_by_type(job_type).new(message_attributes)
+              job = FarmWorker::Job.create(type: job_type, **message_attributes)
               job.project_cache.persist_project_from_s3
               job.run
               queue.delete_messages({
@@ -59,7 +50,7 @@ module FarmWorker
       loop do
         queues_by_job_type.each do |job_type, queues|
           queues = [queues] unless queues.is_a?(Array) # wrap with array if necessary
-          queues.map {|q| generate_job_thread_for_queue(job_type, q) }.each(&:join)
+          queues.map {|q| generate_job_thread_for_queue(q) }.each(&:join)
         end
       end
     end

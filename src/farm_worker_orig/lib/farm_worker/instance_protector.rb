@@ -10,7 +10,7 @@ module FarmWorker
       begin
         @as_client.set_instance_protection({
           auto_scaling_group_name: ENV["ASG_NAME"],
-          instance_ids: [FarmWorker.instance_id],
+          instance_ids: [FarmWorker::INSTANCE_ID],
           protected_from_scale_in: is_protected
         })
       rescue Aws::AutoScaling::Errors::ValidationError => e

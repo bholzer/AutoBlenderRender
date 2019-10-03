@@ -1,10 +1,10 @@
-#!/usr/bin/env ruby
+#!/bin/ruby
 
-require "bundler/setup"
-require "farm_worker"
+require_relative '../lib/farm_worker'
 
 begin
-  FarmWorker.start
+  FarmWorker.setup
+  FarmWorker::JobRunner.start
 rescue => e
   raise e if $DEBUG
   STDERR.puts e.message
