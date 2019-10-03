@@ -1,0 +1,13 @@
+#!/bin/ruby
+
+require_relative '../lib/farm_worker'
+
+begin
+  FarmWorker.setup
+  FarmWorker::JobRunner.start
+rescue => e
+  raise e if $DEBUG
+  STDERR.puts e.message
+  STDERR.puts e.backtrace.join("\n")
+  exit 1
+end

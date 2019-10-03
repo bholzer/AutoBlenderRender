@@ -16,11 +16,11 @@ cloud_final_modules:
 
 packages:
 - amazon-efs-utils
+- unzip
 
 runcmd:
 - file_system_id_01=${shared_file_system_id}
 - efs_directory=/mnt/efs
-
 - mkdir -p $${efs_directory}
 - echo "$${file_system_id_01}:/ $${efs_directory} efs tls,_netdev" >> /etc/fstab
 - mount -a -t efs defaults
@@ -34,21 +34,20 @@ Content-Disposition: attachment; filename="userdata.txt"
 #!/bin/bash
 
 export REGION=${region}
-export BUCKET=${bucket}
+export BUCKET=${render_bucket}
 export FRAME_QUEUE=${frame_queue_url}
 export PROJECT_INIT_QUEUE=${project_init_queue_url}
 export ASG_NAME=${asg_name}
 
-tee init_script.rb <<EOF
-${init_script}
-EOF
+mkdir /worker
+cd worker
 
-mkdir /blender_scripts
+aws s3 cp s3://${code_bucket}/farm_worker.zip farm_worker.zip
+unzip farm_worker.zip
 
-tee /blender_scripts/bake_smoke.py <<EOF
-${blender_bake_smoke}
-EOF
+gem install bundler
+bundle install
+./bin/farm_worker
 
-ruby ./init_script.rb
 
 --//

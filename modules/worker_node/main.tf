@@ -17,7 +17,15 @@ resource "aws_launch_template" "worker_node_template" {
     name = var.iam_instance_profile
   }
 
-  user_data = var.user_data
+  user_data = base64encode(templatefile("${path.module}/user_data.tmpl", {
+    region = var.region
+    render_bucket = var.render_bucket
+    code_bucket = var.code_bucket
+    frame_queue_url = var.frame_queue_url
+    project_init_queue_url = var.project_init_queue_url
+    asg_name = var.asg_name
+    shared_file_system_id = var.shared_file_system_id
+  }))
 }
 
 resource "aws_autoscaling_group" "worker_nodes" {

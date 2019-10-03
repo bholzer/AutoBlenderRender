@@ -2,7 +2,7 @@
 # Must also have ruby >= 2.5 with aws-sdk gems installed
 variable "blender_node_image_id" {
   type = string
-  default = "ami-0d4500bbcdea27e3c"
+  default = "ami-074e75e7f53ac53ea"
 }
 
 # Desired BacklogPerInstance for the frame render queue
