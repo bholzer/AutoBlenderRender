@@ -43,7 +43,7 @@ module FarmWorker
           if message
             FarmWorker.logger.info "Got message"
             message_attributes = message_attributes_to_hash(message)
-            @instance_protector.protect do
+            FarmWorker.instance_protector.protect do
               job = job_class_by_type(job_type).new(message_attributes)
               job.project_cache.persist_project_from_s3
               job.run
