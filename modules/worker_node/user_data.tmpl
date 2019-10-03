@@ -17,6 +17,7 @@ cloud_final_modules:
 packages:
 - amazon-efs-utils
 - unzip
+- git
 
 runcmd:
 - file_system_id_01=${shared_file_system_id}
@@ -39,8 +40,8 @@ export FRAME_QUEUE=${frame_queue_url}
 export PROJECT_INIT_QUEUE=${project_init_queue_url}
 export ASG_NAME=${asg_name}
 
-mkdir /worker
-cd worker
+mkdir /usr/local/src/farm_worker
+cd /usr/local/src/farm_worker
 
 aws s3 cp s3://${code_bucket}/farm_worker.zip farm_worker.zip
 unzip farm_worker.zip

@@ -15,7 +15,7 @@ module FarmWorker
     def queues_by_job_type
       {
         render: Aws::SQS::Resource.new(client: @sqs_client).queues(queue_name_prefix: "RenderTask"),
-        bake: Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"], client: @sqs_client)
+        bake: [Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"], client: @sqs_client)]
       }
     end
 
@@ -41,6 +41,7 @@ module FarmWorker
         @mutex.synchronize do
           message = get_message_from_queue(queue)
           if message
+            FarmWorker.logger.info "Got message"
             message_attributes = message_attributes_to_hash(message)
             @instance_protector.protect do
               job = job_class_by_type(job_type).new(message_attributes)
@@ -56,11 +57,12 @@ module FarmWorker
     end
 
     def start
+      FarmWorker.logger.info "Started the job runner"
       loop do
         queues_by_job_type.each do |job_type, queues|
-          queues = [queues] unless queues.is_a?(Array) # wrap with array if necessary
           queues.map {|q| generate_job_thread_for_queue(job_type, q) }.each(&:join)
         end
+        sleep 2
       end
     end
   end

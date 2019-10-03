@@ -3,6 +3,7 @@ require 'farm_worker/job'
 require 'farm_worker/job_runner'
 require 'farm_worker/instance_protector'
 require 'farm_worker/project_cache'
+require 'logger'
 
 module FarmWorker
   class Error < StandardError; end
@@ -29,5 +30,9 @@ module FarmWorker
 
   def self.setup
     Aws.config.update(region: ENV["REGION"])
+  end
+
+  def self.logger
+    @logger ||= Logger.new(STDOUT)
   end
 end
