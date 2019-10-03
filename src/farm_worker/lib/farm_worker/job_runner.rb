@@ -24,7 +24,7 @@ module FarmWorker
     end
 
     def message_attributes_to_hash(message)
-      Hash.new[ message.message_attributes.map{|atr, val| [atr, val.string_value] } ]
+      Hash[ message.message_attributes.map{|atr, val| [atr, val.string_value] } ]
     end
 
     def job_class_by_type(job_type)

@@ -1,7 +1,6 @@
 module FarmWorker
   class Job::Bake < Job
     BLENDER_SCRIPTS_LOCATION = "./blender_scripts"
-
     def run
       Dir.glob("#{BLENDER_SCRIPTS_LOCATION}/*.py").each do |blender_script_file|
         puts "Running blender..."

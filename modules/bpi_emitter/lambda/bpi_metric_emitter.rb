@@ -13,10 +13,10 @@ def lambda_handler(event:, context:)
     project_init_q = Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"])
     asg_name = ENV["ASG_NAME"]
 
-    combined_message_count = (render_task_queues.to_a + [project_init_q]).map{|q| queue.attributes["ApproximateNumberOfMessages"].to_f }.sum
+    combined_message_count = (render_task_queues.to_a + [project_init_q]).map{|q| q.attributes["ApproximateNumberOfMessages"].to_f }.sum
     group_capacity = Aws::AutoScaling::AutoScalingGroup.new(asg_name).instances.select{|i| i.lifecycle_state == 'InService' }.count.to_f
 
-    bpi = group_capacity > 0 ? combined_message_count/group_capacity : 1
+    bpi = group_capacity > 0 ? combined_message_count/group_capacity : combined_message_count
 
     cloudwatch_client.put_metric_data(
       namespace: ENV["CLOUDWATCH_NAMESPACE"],
