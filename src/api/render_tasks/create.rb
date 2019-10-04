@@ -13,37 +13,32 @@ def lambda_handler(event:, context:)
   puts event.inspect
 
   render_task_id = SecureRandom.uuid
+  project_id = event["pathParameters"]["project_id"]
+  status = 'started'
 
-  new_task = {
-    "Status" => "started",
-    "StartedAt" => Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
-    "StartFrame" => request_body["start_frame"],
-    "EndFrame" => request_body["end_frame"],
-    "RenderTaskId" => render_task_id,
-    "QueueUrl" => sqs.create_queue(queue_name: "RenderTask#{render_task_id}").queue_url
+  render_task = {
+    "hk" => render_task_id,
+    "rk" => "RENDER_TASK",
+    "data" => status,
+    "started_at" => Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
+    "start_frame" => request_body["start_frame"],
+    "end_frame" => request_body["end_frame"]
+  }
+
+  project_render_task = {
+    "hk" => "project##{project_id}",
+    "rk" => "render_task##{render_task_id}",
   }
 
   begin
-    res = db.update_item({
-      table_name: ENV['PROJECTS_TABLE'],
-      key: {
-        "ProjectId" => event["pathParameters"]["project_id"]
-      },
-      return_values: "ALL_NEW",
-      update_expression: "set #RenderTasks = list_append(if_not_exists(#RenderTasks, :EmptyList), :RenderTask)",
-      expression_attribute_names: {
-        "#RenderTasks" => "RenderTasks"
-      },
-      expression_attribute_values: {
-        ":EmptyList" => [],
-        ":RenderTask" => [new_task]
-      }
-    })
+    task = db.put_item(table_name: ENV['PROJECTS_TABLE'], item: render_task)
+    project_task = db.put_item(table_name: ENV['PROJECTS_TABLE'], item: project_render_task)
+    new_queue_url = sqs.create_queue(queue_name: "RenderTask#{render_task_id}").queue_url
 
-    if new_task["StartFrame"] && new_task["EndFrame"]
+    if render_task["start_frame"] && render_task["end_frame"]
       puts "Sending render messages..."
-      (new_task["StartFrame"]..new_task["EndFrame"]).each do |frame|
-        frame_q = Aws::SQS::Queue.new(new_task["QueueUrl"])
+      (render_task["start_frame"]..render_task["end_frame"]).each do |frame|
+        frame_q = Aws::SQS::Queue.new(new_queue_url)
         frame_q.send_message(
           message_body: 'Render Frame Triggered By Render Task',
           message_attributes: {

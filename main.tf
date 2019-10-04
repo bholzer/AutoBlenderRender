@@ -179,7 +179,9 @@ module "bpi_emitter" {
 
 resource "aws_dynamodb_table" "farm_table" {
   name = "FarmTable"
-  billing_mode = "PAY_PER_REQUEST"
+  billing_mode = "PROVISIONED"
+  write_capacity     = 10
+  read_capacity      = 10
   hash_key = "hk"
   range_key = "rk"
 
@@ -192,6 +194,7 @@ resource "aws_dynamodb_table" "farm_table" {
     name = "rk"
     type = "S"
   }
+
 }
 
 module "api" {

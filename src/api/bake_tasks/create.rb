@@ -9,30 +9,24 @@ def lambda_handler(event:, context:)
     request_body = event["body"] ? JSON.parse(event["body"]) : nil
     user_id = event.dig("requestContext", "authorizer", "claims", "sub")
     project_id = event["pathParameters"]["project_id"]
+    bake_task_id = SecureRandom.uuid
 
     puts event.inspect
 
-    new_task = {
-    	"StartedAt" => Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
-    	"BakeTaskId" => SecureRandom.uuid
+    bake_task = {
+      "hk" => bake_task_id,
+      "rk" => "BAKE_TASK",
+      "started_at" => Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
+    }
+
+    project_bake_task = {
+      "hk" => "project##{project_id}",
+      "rk" => "bake_task##{render_task_id}",
     }
 
   begin
-    res = db.update_item({
-    	table_name: ENV['PROJECTS_TABLE'],
-    	key: {
-    		"ProjectId" => project_id
-    	},
-    	return_values: "ALL_NEW",
-    	update_expression: "set #BakeTasks = list_append(if_not_exists(#BakeTasks, :EmptyList), :BakeTask)",
-    	expression_attribute_names: {
-    		"#BakeTasks" => "BakeTasks"
-    	},
-    	expression_attribute_values: {
-    		":EmptyList" => [],
-    		":BakeTask" => [new_task]
-    	}
-    })
+    task = db.put_item(table_name: ENV['PROJECTS_TABLE'], item: bake_task)
+    project_task = db.put_item(table_name: ENV['PROJECTS_TABLE'], item: project_bake_task)
 
     bake_q.send_message(
       message_body: 'Body',

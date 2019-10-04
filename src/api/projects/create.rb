@@ -17,8 +17,8 @@ def lambda_handler(event:, context:)
     }
 
     user_project_item = {
-      "hk" => new_project_id,
-      "rk" => user_id
+      "hk" => "user##{user_id}",
+      "rk" => "project##{new_project_id}"
     }
   begin
     database.put_item(table_name: ENV['PROJECTS_TABLE'], item: project_item)
