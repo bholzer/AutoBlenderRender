@@ -3,6 +3,8 @@ require 'aws-sdk'
 require 'securerandom'
 require 'shared'
 
+include Shared
+
 def lambda_handler(event:, context:)
     # Get all projects for this user from dynamo
     db = Aws::DynamoDB::Client.new(region: ENV['REGION'])

@@ -20,7 +20,7 @@ resource "aws_api_gateway_deployment" "farm_api_deployment" {
 }
 
 resource "aws_lambda_layer_version" "api_lambda_layer" {
-  filename   = "${path.root}/src/lambda_layer/lambda_layer.zip"
+  filename   = "${path.root}/src/lambda_layer/ruby/lambda_layer.zip"
   layer_name = "api_layer"
 
   compatible_runtimes = ["ruby2.5"]
@@ -94,73 +94,168 @@ resource "aws_api_gateway_resource" "blendfile_uploader" {
   path_part   = "blendfile_uploader"
 }
 
-module "api_endpoint" {
-  for_each = {
-    projects_index = {
-      controller = "projects"
-      method = "GET"
-      action = "index"
-      resource = aws_api_gateway_resource.farm_projects
-    }
-    projects_create = {
-      controller = "projects"
-      method = "POST"
-      action = "create"
-      resource = aws_api_gateway_resource.farm_projects
-    }
-    project_show = {
-      controller = "projects"
-      method = "GET"
-      action = "show"
-      resource = aws_api_gateway_resource.farm_project
-    }
-    project_destroy = {
-      controller = "projects"
-      method = "DELETE"
-      action = "destroy"
-      resource = aws_api_gateway_resource.farm_project
-    }
-    project_blendfile_uploader = {
-      controller = "projects"
-      method = "GET"
-      action = "blendfile_uploader"
-      resource = aws_api_gateway_resource.blendfile_uploader
-    }
-    render_tasks_create = {
-      controller = "render_tasks"
-      method = "POST"
-      action = "create"
-      resource = aws_api_gateway_resource.render_tasks
-    }
-    render_tasks_index = {
-      controller = "render_tasks"
-      method = "GET"
-      action = "index"
-      resource = aws_api_gateway_resource.render_tasks
-    }
-    render_task_show = {
-      controller = "render_tasks"
-      method = "GET"
-      action = "show"
-      resource = aws_api_gateway_resource.render_task
-    }
-    bake_tasks_create = {
-      controller = "bake_tasks"
-      method = "POST"
-      action = "create"
-      resource = aws_api_gateway_resource.bake_tasks
-    }
-  }
-
+module "projects_index_action" {
   source = "../api_action"
 
-  controller = lookup(each.value, "controller")
-  method = lookup(each.value, "method")
-  action = lookup(each.value, "action")
-  api_resource = lookup(each.value, "resource")
+  api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "projects"
+  method = "GET"
+  action = "index"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.farm_projects
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
+}
+
+module "projects_create_action" {
+  source = "../api_action"
 
   api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "projects"
+  method = "POST"
+  action = "create"
   rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.farm_projects
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
+}
+
+module "project_show_action" {
+  source = "../api_action"
+
+  api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "projects"
+  method = "GET"
+  action = "show"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.farm_project
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
+}
+
+module "project_destroy_action" {
+  source = "../api_action"
+
+  api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "projects"
+  method = "DELETE"
+  action = "destroy"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.farm_project
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
+}
+
+
+module "project_blendfile_uploader" {
+  source = "../api_action"
+
+  api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "projects"
+  method = "GET"
+  action = "blendfile_uploader"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.blendfile_uploader
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
+}
+
+module "render_tasks_create_action" {
+  source = "../api_action"
+
+  api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "render_tasks"
+  method = "POST"
+  action = "create"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.render_tasks
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
+}
+
+module "render_tasks_index_action" {
+  source = "../api_action"
+
+  api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "render_tasks"
+  method = "GET"
+  action = "index"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.render_tasks
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
+}
+
+module "render_task_show_action" {
+  source = "../api_action"
+
+  api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "render_tasks"
+  method = "GET"
+  action = "show"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.render_task
+  deployment = aws_api_gateway_deployment.farm_api_deployment
+  region = var.region
+  dynamo_tables = var.dynamo_tables
+  bucket = var.bucket
+  frame_queue = var.frame_queue
+  project_init_queue = var.project_init_queue
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.farm_api_authorizer.id
+}
+
+module "bake_tasks_create_action" {
+  source = "../api_action"
+
+  api_lambda_layer = aws_lambda_layer_version.api_lambda_layer.arn
+  controller = "bake_tasks"
+  method = "POST"
+  action = "create"
+  rest_api = aws_api_gateway_rest_api.farm_api
+  api_resource = aws_api_gateway_resource.bake_tasks
   deployment = aws_api_gateway_deployment.farm_api_deployment
   region = var.region
   dynamo_tables = var.dynamo_tables
