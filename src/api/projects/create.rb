@@ -1,6 +1,7 @@
 require 'json'
 require 'aws-sdk'
 require 'securerandom'
+require 'shared'
 
 def lambda_handler(event:, context:)
     # Get all projects for this user from dynamo

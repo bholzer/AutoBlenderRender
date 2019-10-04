@@ -87,6 +87,13 @@ resource "aws_api_gateway_resource" "blendfile_uploader" {
   path_part   = "blendfile_uploader"
 }
 
+resource "aws_lambda_layer_version" "api_lambda_layer" {
+  filename   = "${path.root}/src/lambda_layer/lambda_layer.zip"
+  layer_name = "api_layer"
+
+  compatible_runtimes = ["ruby2.5"]
+}
+
 module "projects_index_action" {
   source = "../api_action"
 
