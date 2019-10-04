@@ -7,6 +7,7 @@ def lambda_handler(event:, context:)
     db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
     bake_q = Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"])
     request_body = event["body"] ? JSON.parse(event["body"]) : nil
+    user_id = event.dig("requestContext", "authorizer", "claims", "sub")
     project_id = event["pathParameters"]["project_id"]
 
     puts event.inspect

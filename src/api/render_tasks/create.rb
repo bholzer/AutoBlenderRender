@@ -6,6 +6,7 @@ def lambda_handler(event:, context:)
   # Get all projects for this user from dynamo
   db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
   sqs = Aws::SQS::Client.new(region: ENV["REGION"])
+  user_id = event.dig("requestContext", "authorizer", "claims", "sub")
 
   request_body = event["body"] ? JSON.parse(event["body"]) : nil
 

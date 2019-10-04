@@ -3,6 +3,7 @@ require 'aws-sdk'
 
 def lambda_handler(event:, context:)
     # Get all projects for this user from dynamo
+    user_id = event.dig("requestContext", "authorizer", "claims", "sub")
     db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
 
   begin

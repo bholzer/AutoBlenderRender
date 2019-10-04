@@ -177,24 +177,19 @@ module "bpi_emitter" {
 #   project_init_queue = aws_sqs_queue.project_init_queue.id
 # }
 
-resource "aws_dynamodb_table" "projects_table" {
-  name = "FarmProjects"
+resource "aws_dynamodb_table" "farm_table" {
+  name = "FarmTable"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key = "ProjectId"
+  hash_key = "hk"
+  range_key = "rk"
 
   attribute {
-    name = "ProjectId"
+    name = "hk"
     type = "S"
   }
-}
-
-resource "aws_dynamodb_table" "application_settings" {
-  name = "FarmApplicationSettings"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key = "SettingName"
 
   attribute {
-    name = "SettingName"
+    name = "rk"
     type = "S"
   }
 }
@@ -209,8 +204,7 @@ module "api" {
   client_endpoint = "https://${aws_s3_bucket.client_bucket.website_endpoint}"
 
   dynamo_tables = {
-    projects = aws_dynamodb_table.projects_table.name,
-    application_settings = aws_dynamodb_table.application_settings.name
+    projects = aws_dynamodb_table.farm_table.name
   }
 }
 
