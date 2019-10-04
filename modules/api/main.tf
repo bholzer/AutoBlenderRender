@@ -19,6 +19,13 @@ resource "aws_api_gateway_deployment" "farm_api_deployment" {
   stage_name  = "prod"
 }
 
+resource "aws_lambda_layer_version" "api_lambda_layer" {
+  filename   = "${path.root}/src/lambda_layer/lambda_layer.zip"
+  layer_name = "api_layer"
+
+  compatible_runtimes = ["ruby2.5"]
+}
+
 resource "aws_cognito_user_pool" "farm_users_pool" {
   name = "farm_users"
 }
@@ -85,13 +92,6 @@ resource "aws_api_gateway_resource" "blendfile_uploader" {
   rest_api_id = aws_api_gateway_rest_api.farm_api.id
   parent_id   = aws_api_gateway_resource.farm_project.id
   path_part   = "blendfile_uploader"
-}
-
-resource "aws_lambda_layer_version" "api_lambda_layer" {
-  filename   = "${path.root}/src/lambda_layer/lambda_layer.zip"
-  layer_name = "api_layer"
-
-  compatible_runtimes = ["ruby2.5"]
 }
 
 module "api_endpoint" {
