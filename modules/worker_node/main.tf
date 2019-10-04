@@ -51,7 +51,7 @@ resource "aws_autoscaling_group" "worker_nodes" {
     }
     instances_distribution {
       spot_instance_pools = length(var.instance_types)
-      on_demand_percentage_above_base_capacity = 10
+      on_demand_percentage_above_base_capacity = 0
     }
   }
 }
@@ -132,6 +132,7 @@ resource "aws_autoscaling_policy" "worker_node_autoscaling_policy" {
   adjustment_type = "PercentChangeInCapacity"
   policy_type = "TargetTrackingScaling"
   autoscaling_group_name = aws_autoscaling_group.worker_nodes.name
+  estimated_instance_warmup = 200
 
   target_tracking_configuration {
     target_value = 0.99
