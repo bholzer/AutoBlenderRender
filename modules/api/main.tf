@@ -10,6 +10,8 @@ resource "aws_api_gateway_deployment" "farm_api_deployment" {
     "module.project_show_action.integration",
     "module.project_blendfile_uploader.integration",
     "module.render_tasks_create_action.integration",
+    "module.render_tasks_index_action.integration",
+    "module.render_task_show_action.integration",
     "module.bake_tasks_create_action.integration"
   ]
 

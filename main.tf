@@ -1,9 +1,16 @@
 provider "aws" {
-  version = "~> 2.0"
+  version = "~> 2.31"
   region = var.region
 }
 
 data "aws_caller_identity" "current" {}
+
+resource "random_string" "build_id" {
+  length = 16
+  special = false
+  upper = false
+  number = false
+}
 
 module "network" {
   source = "./modules/network"
@@ -16,31 +23,42 @@ module "node_iam_role" {
   source = "./modules/node_iam_role"
 }
 
-resource "random_string" "random_render_bucket_name" {
-  length = 16
-  special = false
-  number = false
-}
-
-resource "random_string" "random_client_bucket_name" {
-  length = 16
-  special = false
-  number = false
-}
-
 resource "aws_s3_bucket" "render_bucket" {
-  bucket = var.render_bucket_name != "" ? random_string.random_render_bucket_name.result : var.render_bucket_name
+  bucket = "${random_string.build_id.result}-render-data"
   acl    = "private"
 }
 
+# Stores server-side code bundles. i.e. Worker node and lambda layer
+resource "aws_s3_bucket" "code_bundles_bucket" {
+  bucket = "${random_string.build_id.result}-code-bundles"
+  acl    = "private"
+}
+
+# Stores and serves javascript client
 resource "aws_s3_bucket" "client_bucket" {
-  bucket = "client-bucket123123"
+  bucket = "${random_string.build_id.result}-client-bucket"
   acl    = "public-read"
 
   website {
     index_document = "index.html"
     error_document = "error.html"
   }
+}
+
+# Code bundles
+
+data "archive_file" "worker_node_code" {
+  type = "zip"
+  source_dir = "${path.root}/src/farm_worker"
+  output_path = "${path.root}/src/bundles/farm_worker.zip"
+}
+
+resource "aws_s3_bucket_object" "worker_code_bundle" {
+  bucket = aws_s3_bucket.code_bundles_bucket.id
+  key = "farm_worker.zip"
+  source = "${path.root}/src/bundles/farm_worker.zip"
+
+  depends_on = [data.archive_file.worker_node_code]
 }
 
 # Security groups for the worker nodes
@@ -123,16 +141,14 @@ module "worker_node" {
   image_id = var.blender_node_image_id
   vpc_security_group_ids = [aws_security_group.ssh.id, aws_security_group.nfs.id]
   iam_instance_profile = module.node_iam_role.worker_iam_profile_name
-  user_data = base64encode(templatefile("./node_scripts/user_data.tmpl", {
-    init_script = file("./node_scripts/farm_worker.rb"),
-    blender_bake_smoke = file("./node_scripts/blender_scripts/bake_smoke.py"),
-    region = var.region,
-    bucket = aws_s3_bucket.render_bucket.id,
-    frame_queue_url = aws_sqs_queue.frame_render_queue.id,
-    project_init_queue_url = aws_sqs_queue.project_init_queue.id,
-    asg_name = var.worker_asg_name,
-    shared_file_system_id = aws_efs_file_system.shared_render_vol.id
-  }))
+
+  build_id = random_string.build_id.result
+  region = var.region
+  render_bucket = aws_s3_bucket.render_bucket.id
+  code_bucket = aws_s3_bucket.code_bundles_bucket.id
+  frame_queue_url = aws_sqs_queue.frame_render_queue.id
+  project_init_queue_url = aws_sqs_queue.project_init_queue.id
+  shared_file_system_id = aws_efs_file_system.shared_render_vol.id
 
   instance_types = var.instance_types
   asg_name = var.worker_asg_name
