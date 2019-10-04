@@ -147,6 +147,7 @@ resource "aws_lambda_function" "lambda_action" {
   handler = "${var.action}.lambda_handler"
   runtime = "ruby2.5"
   timeout = 5
+  layers = [var.api_lambda_layer]
 
   environment {
     variables = merge({

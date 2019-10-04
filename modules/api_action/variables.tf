@@ -50,3 +50,7 @@ variable "authorization" {
 variable "authorizer_id" {
   type = string
 }
+
+variable "api_lambda_layer" {
+  type = string
+}
