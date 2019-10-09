@@ -3,21 +3,27 @@ require 'aws-sdk'
 require 'securerandom'
 require 'shared'
 
-include Shared
-
 def lambda_handler(event:, context:)
     # Get all projects for this user from dynamo
-    db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
-    s3_client = Aws::S3::Client.new()
-    bucket = Aws::S3::Bucket.new(ENV["BUCKET"], client: s3_client)
+    user_id = event.dig("requestContext", "authorizer", "claims", "sub")
+    database = Aws::DynamoDB::Client.new(region: ENV['REGION'])
+
     request_body = event["body"] ? JSON.parse(event["body"]) : nil
-    item = {
-      "ProjectName" => request_body["name"],
-      "ProjectId" => SecureRandom.uuid
+    new_project_id = SecureRandom.uuid
+    project_item = {
+      "hk" => new_project_id,
+      "rk" => "PROJECT",
+      "data" => request_body["name"]
+    }
+
+    user_project_item = {
+      "hk" => "user##{user_id}",
+      "rk" => "project##{new_project_id}"
     }
   begin
-    db.put_item(table_name: ENV['PROJECTS_TABLE'], item: item)
-    { statusCode: 200, body: JSON.generate(item) }
+    database.put_item(table_name: ENV['PROJECTS_TABLE'], item: project_item)
+    database.put_item(table_name: ENV['PROJECTS_TABLE'], item: user_project_item)
+    { statusCode: 200, body: JSON.generate(project_item) }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
     puts 'Unable to create project:'
     puts error.message
