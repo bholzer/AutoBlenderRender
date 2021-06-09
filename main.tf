@@ -47,7 +47,7 @@ resource "aws_s3_bucket" "client_bucket" {
 
 # Code layer
 
-data "archive_file" "worker_node_code" {
+data "archive_file" "layer_zip" {
   type = "zip"
   source_dir = "${path.root}/src/lambda_layer"
   output_path = "${path.root}/src/lambda_layer/ruby/lambda_layer.zip""
