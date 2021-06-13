@@ -19,6 +19,12 @@ resource "aws_api_gateway_deployment" "farm_api_deployment" {
   stage_name  = "prod"
 }
 
+data "archive_file" "layer_zip" {
+   type = "zip"
+   source_dir = "${path.root}/src/lambda_layer"
+   output_path = "${path.root}/src/lambda_layer/ruby/lambda_layer.zip"
+}
+
 resource "aws_lambda_layer_version" "api_lambda_layer" {
   filename   = "${path.root}/src/lambda_layer/ruby/lambda_layer.zip"
   layer_name = "api_layer"
