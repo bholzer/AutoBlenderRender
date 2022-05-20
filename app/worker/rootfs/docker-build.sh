@@ -1,5 +1,5 @@
 apt update
-apt-get install -y ruby unzip
+apt-get install -y ruby unzip git
 gem install bundler
 
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -9,4 +9,5 @@ rm -rf ./aws
 
 # Install worker application
 cd /worker 
-bundle exec rake install
+gem build worker.gemspec
+gem install worker
