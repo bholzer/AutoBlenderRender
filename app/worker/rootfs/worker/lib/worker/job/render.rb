@@ -1,6 +1,6 @@
 module Worker
   class Job::Render < Job
-    def run
+    def execute
       frame = @message_attributes["frame"]
       project_id = @message_attributes["project_id"]
       render_task_id = @message_attributes["render_task_id"]

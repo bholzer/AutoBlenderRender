@@ -5,22 +5,18 @@ module Worker
   class JobRunner
     def initialize
       @sqs_client = Aws::SQS::Client.new
-      @mutex = Mutex.new
+      @job_queue = Aws::SQS::Queue.new(Worker.config[:job_queue], client: @sqs_client)
     end
 
     def self.start
       self.new.start
     end
 
-    def queues_by_job_type
-      {
-        render: Aws::SQS::Resource.new(client: @sqs_client).queues(queue_name_prefix: "RenderTask"),
-        bake: [Aws::SQS::Queue.new(ENV["PROJECT_INIT_QUEUE"], client: @sqs_client)]
-      }
-    end
-
-    def get_message_from_queue(queue)
-      queue.receive_messages(message_attribute_names: ["All"]).first
+    def get_message
+      @job_queue.receive_messages(
+        message_attribute_names: ["All"],
+        max_number_of_messages: 1
+      ).first
     end
 
     def message_attributes_to_hash(message)
@@ -29,35 +25,31 @@ module Worker
 
     def job_class_by_type(job_type)
       case job_type
-      when :render
+      when "render"
         Worker::Job::Render
       # when :bake
       #   Worker::Job::Bake
       end
     end
 
-    def generate_job_thread_for_queue(job_type, queue)
-      Thread.new do
-        @mutex.synchronize do
-          message = get_message_from_queue(queue)
-          if message
-            Worker.logger.info "Got message"
-            job = job_class_by_type(job_type).new(message_attributes_to_hash(message))
-            job.project_cache.persist_project_from_s3
-            job.run
-            queue.delete_messages({
-              entries: [{id: message.message_id, receipt_handle: message.receipt_handle }]
-            })
-          end
-        end
-      end
+    def execute_job(message)
+      Worker.logger.info "Starting job"
+      job_attributes = message_attributes_to_hash(message)
+      job_class = job_class_by_type(job_attributes["type"])
+      job = job_class.new(job_attributes)
+      job.execute
+      @job_queue.delete_messages({
+        entries: [{id: message.message_id, receipt_handle: message.receipt_handle }]
+      })
+      Worker.logger.info "Job complete"
     end
 
     def start
       Worker.logger.info "Started the job runner"
       loop do
-        queues_by_job_type.each do |job_type, queues|
-          queues.map {|q| generate_job_thread_for_queue(job_type, q) }.each(&:join)
+        job_message = get_message
+        if job_message
+          execute_job(job_message)
         end
         sleep 2
       end

@@ -8,7 +8,7 @@ module Worker
   EFS_MOUNT = "/mnt/efs"
 
   def self.start
-    Aws.config.update(region: config.region)
+    Aws.config.update(region: config[:region])
     job_runner.start
   end
 
