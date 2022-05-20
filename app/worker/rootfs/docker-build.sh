@@ -11,3 +11,4 @@ rm -rf ./aws
 cd /worker 
 gem build worker.gemspec
 gem install worker
+rm *.gem
