@@ -1,3 +1,0 @@
-bucket = "terraform-state-0912398730"
-key = "/auto-blender-render/terraform.tfstate"
-region = "us-east-1"

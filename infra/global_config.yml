@@ -1,0 +1,6 @@
+name: auto-blender-render
+vpc_cidr: 10.52.145.0/24
+private_subnet_cidrs:
+  - 10.52.145.0/25
+  - 10.52.145.128/25
+az_count: 2
