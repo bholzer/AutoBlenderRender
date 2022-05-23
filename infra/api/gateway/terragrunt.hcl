@@ -58,7 +58,7 @@ inputs = {
       function_name = dependency.projects_index.outputs.function.function_name,
       auth = {
         source = "$request.header.Authorization"
-        audience = "farm"
+        audience = ["farm"]
         issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
       }
     },
@@ -67,7 +67,7 @@ inputs = {
       function_name = dependency.projects_show.outputs.function.function_name,
       auth = {
         source = "$request.header.Authorization"
-        audience = "farm"
+        audience = ["farm"]
         issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
       }
     },
@@ -76,7 +76,7 @@ inputs = {
       function_name = dependency.projects_create.outputs.function.function_name,
       auth = {
         source = "$request.header.Authorization"
-        audience = "farm"
+        audience = ["farm"]
         issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
       }
     },
@@ -85,7 +85,7 @@ inputs = {
       function_name = dependency.projects_destroy.outputs.function.function_name,
       auth = {
         source = "$request.header.Authorization"
-        audience = "farm"
+        audience = ["farm"]
         issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
       }
     },
@@ -94,7 +94,7 @@ inputs = {
       function_name = dependency.blends_index.outputs.function.function_name,
       auth = {
         source = "$request.header.Authorization"
-        audience = "farm"
+        audience = ["farm"]
         issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
       }
     },
@@ -103,7 +103,7 @@ inputs = {
       function_name = dependency.blends_show.outputs.function.function_name,
       auth = {
         source = "$request.header.Authorization"
-        audience = "farm"
+        audience = ["farm"]
         issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
       }
     },
@@ -112,7 +112,7 @@ inputs = {
       function_name = dependency.blends_create.outputs.function.function_name,
       auth = {
         source = "$request.header.Authorization"
-        audience = "farm"
+        audience = ["farm"]
         issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
       }
     },
@@ -121,7 +121,7 @@ inputs = {
       function_name = dependency.blends_destroy.outputs.function.function_name,
       auth = {
         source = "$request.header.Authorization"
-        audience = "farm"
+        audience = ["farm"]
         issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
       }
     }
