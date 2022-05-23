@@ -14,7 +14,7 @@ terraform {
 
 inputs = {
   name = local.config.name
-  vpc_cidr = local.config.vpc_cidr
+  cidr_block = local.config.vpc_cidr
   private_subnet_cidrs = local.config.private_subnet_cidrs
   az_count = local.config.az_count
 }
