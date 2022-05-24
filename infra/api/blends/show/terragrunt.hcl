@@ -35,4 +35,5 @@ inputs = {
     PROJECTS_TABLE = dependency.projects_table.outputs.table.name
     BUCKET_NAME = dependency.bucket.outputs.bucket.id
   }
+  policy_arns = [dependency.projects_table.outputs.read_policy.arn, dependency.projects_table.outputs.write_policy.arn]
 }
