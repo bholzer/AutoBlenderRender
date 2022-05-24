@@ -34,7 +34,7 @@ def handler(event:, context:)
     database.put_item(table_name: ENV["PROJECTS_TABLE"], item: project_blend_item)
     { statusCode: 200, body: JSON.generate(blend_item.merge({upload_url: blendfile_upload_url})) }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
-    puts 'Unable to create blend:'
+    puts "Unable to create blend:"
     puts error.message
     { statusCode: 400, body: JSON.generate(error.message) }
   end
