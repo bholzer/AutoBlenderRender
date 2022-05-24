@@ -50,5 +50,5 @@ for function_file in "${functions_to_deploy[@]}"; do
 
   rm -rf "$build_dir"
   echo "Deployed $lambda_name"
-  echo
+  echo "----------------------------------------------------------"
 done
