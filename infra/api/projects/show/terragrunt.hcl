@@ -16,11 +16,23 @@ dependency "vpc" {
   config_path = "../../../vpc"
 }
 
+dependency "projects_table" {
+  config_path = "../../../tables/projects"
+}
+
+dependency "bucket" {
+  config_path = "../../../bucket"
+}
+
 inputs = {
   name = "${local.config.name}-projects-show"
   runtime = "ruby2.7"
   vpc_config = {
     subnet_ids = [ for k, sub in dependency.vpc.outputs.private_subnets: sub.id ]
     security_group_ids = []
+  }
+  environment = {
+    PROJECTS_TABLE = dependency.projects_table.outputs.table.name
+    BUCKET_NAME = dependency.bucket.outputs.bucket.id
   }
 }

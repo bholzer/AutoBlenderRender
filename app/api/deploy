@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# Deploy API endpoint script code to respective lambda functions.
+
 set -eu
 
 function usage() {

@@ -24,7 +24,7 @@ module Worker
     @config ||= {
       region: ENV["REGION"],
       efs_mount: "/mnt/efs",
-      bucket: ENV["BUCKET"],
+      bucket: ENV["BUCKET_NAME"],
       job_queue: ENV["JOB_QUEUE"]
     }
   end

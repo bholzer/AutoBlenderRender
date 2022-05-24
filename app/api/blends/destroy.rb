@@ -6,7 +6,7 @@ def handler(event:, context:)
   user_id = event.dig("requestContext", "authorizer", "claims", "sub")
   project_id = event["pathParameters"]["projectId"]
   blend_id = event["pathParameters"]["blendId"]
-  db = Aws::DynamoDB::Client.new(region: ENV['REGION'])
+  db = Aws::DynamoDB::Client.new(region: ENV["AWS_REGION"])
 
   blend = {
     "hk" => blend_id,
@@ -19,11 +19,11 @@ def handler(event:, context:)
   }
 
   begin
-    db.delete_item(table_name: ENV['PROJECTS_TABLE'], key: blend)
-    db.delete_item(table_name: ENV['PROJECTS_TABLE'], key: project_blend)
+    db.delete_item(table_name: ENV["PROJECTS_TABLE"], key: blend)
+    db.delete_item(table_name: ENV["PROJECTS_TABLE"], key: project_blend)
     { statusCode: 200, body: project_id }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
-    puts 'Unable to delete blend:'
+    puts "Unable to delete blend:"
     puts error.message
     { statusCode: 400, body: JSON.generate(error.message) }
   end
