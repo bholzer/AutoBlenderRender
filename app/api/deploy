@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -eu
+
+function usage() {
+  echo "Usage: $0 [-e environment] [-f function]"
+  echo "  -e, --environment      The name of the environment to deploy the API endpoints to."
+  echo "  -f, --function         Path to function to deploy. May be specified multiple times to deploy specific functions, or omitted to deploy all."
+  echo
+}
+
+environment_name="auto-blender-render"
+functions_to_deploy=()
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    -e|--environment) environment_name="$2"; shift;; 
+    -f|--function) functions_to_deploy+=("$2"); shift;;
+    *) usage ;;
+  esac
+  shift
+done
+
+if [[ "${#functions_to_deploy[@]}" -eq 0 ]]; then
+  echo "No function arguments supplied, deploying all functions."
+  echo "========================================================"
+  readarray -d '' functions_to_deploy < <(find . -type f -name "*.rb" -print0)
+fi
+
+for function_file in "${functions_to_deploy[@]}"; do
+  # Create a slug from the relative directory structure and filename
+  # Example:
+  #   └── blends
+  #       └── show.rb
+  # The file at ./blends/show.rb will get a slug of blends-show
+  slug="${function_file%%.rb}"
+  slug="${slug##./}"
+  slug="${slug//[^a-zA-Z0-9]/-}"
+
+  # Be sure your lambda modules have names that match the environment and slug
+  lambda_name="$environment_name-$slug"
+  echo "Deploying $function_file to $lambda_name"
+
+  build_dir="$(mktemp -d)"
+  cp "$function_file" "$build_dir/main.rb"
+  (cd "$build_dir"; zip -rq function.zip .)
+  update_res="$(aws lambda update-function-code \
+    --function-name "$lambda_name" \
+    --zip-file "fileb://$build_dir/function.zip" \
+    --publish)"
+
+  rm -rf "$build_dir"
+  echo "Deployed $lambda_name"
+  echo
+done
