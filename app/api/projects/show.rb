@@ -19,7 +19,15 @@ def handler(event:, context:)
 
   if user_project
     project = db.get_item(table_name: ENV["PROJECTS_TABLE"], key: {"hk" => project_id, "rk" => "PROJECT"}).item
-    { statusCode: 200, body: JSON.generate(project) }
+    {
+      statusCode: 200,
+      body: JSON.generate({
+        project: {
+          id: project["hk"],
+          name: project["data"]
+        }
+      })
+    }
   else
     { statusCode: 400, body: "" }
   end

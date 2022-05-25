@@ -21,7 +21,15 @@ def handler(event:, context:)
   begin
     database.put_item(table_name: ENV["PROJECTS_TABLE"], item: project_item)
     database.put_item(table_name: ENV["PROJECTS_TABLE"], item: user_project_item)
-    { statusCode: 200, body: JSON.generate(project_item) }
+    {
+      statusCode: 200,
+      body: JSON.generate({
+        project: {
+          id: project_item["hk"],
+          name: project_item["data"]
+        }
+      })
+    }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
     puts "Unable to create project:"
     puts error.message

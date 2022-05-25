@@ -46,6 +46,7 @@ for function_file in "${functions_to_deploy[@]}"; do
   build_dir="$(mktemp -d)"
   cp "$function_file" "$build_dir/main.rb"
   (cd "$build_dir"; zip -rq function.zip .)
+
   update_res="$(aws lambda update-function-code \
     --function-name "$lambda_name" \
     --zip-file "fileb://$build_dir/function.zip" \
