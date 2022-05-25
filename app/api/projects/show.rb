@@ -24,7 +24,7 @@ def handler(event:, context:)
       body: JSON.generate({
         project: {
           id: project["hk"],
-          name: project["data"]
+          name: project["project_name"]
         }
       })
     }

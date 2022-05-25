@@ -8,17 +8,43 @@ def handler(event:, context:)
   db = Aws::DynamoDB::Client.new(region: ENV["AWS_REGION"])
 
   project = {
-    "hk" => project_id,
-    "rk" => "PROJECT"
+    item: {
+      "hk" => project_id,
+      "rk" => "PROJECT",
+      "project_name" => request_body["name"]
+    }
   }
 
   user_project = {
-    "hk" => "user##{project_id}",
-    "rk" => "project##{project_id}"
+    item: {
+      "hk" => "user##{user_id}",
+      "rk" => "project##{project_id}"
+    }
   }
+
+  project_name_constraint = {
+    item: {
+      "hk" => "project_name##{project[:item]["project_name"]}",
+      "rk" => "PROJECT"
+    }
+  }
+
+  # Build a transaction for records needed
+  transact_items = [
+    project,
+    user_project,
+    project_name_constraint
+  ].map do |record|
+    {
+      delete: {
+        table_name: ENV["PROJECTS_TABLE"],
+        item: record[:item]
+      }
+    }
+  end
+
   begin
-    db.delete_item(table_name: ENV["PROJECTS_TABLE"], key: project)
-    db.delete_item(table_name: ENV["PROJECTS_TABLE"], key: user_project)
+    database.transact_write_items({transact_items: transact_items})
     { statusCode: 200, body: project_id }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
     puts "Unable to delete project:"

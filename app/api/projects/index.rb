@@ -33,7 +33,7 @@ def handler(event:, context:)
         projects: projects.map do |project|
           {
             id: project["hk"],
-            name: project["data"]
+            name: project["project_name"]
           }
         end
       })
