@@ -6,26 +6,29 @@ def handler(event:, context:)
   user_id = event.dig("requestContext", "authorizer", "claims", "sub")
   project_id = event["pathParameters"]["projectId"]
   blend_id = event["pathParameters"]["blendId"]
+  job_id = event["pathParameters"]["jobId"]
   db = Aws::DynamoDB::Client.new(region: ENV["AWS_REGION"])
   s3_client = Aws::S3::Client.new()
   bucket = Aws::S3::Bucket.new(ENV["BUCKET_NAME"], client: s3_client)
 
-  blend = db.get_item(
+  job = db.get_item(
     table_name: ENV["PROJECTS_TABLE"],
     key: {
       "hk" => "user##{user_id}",
-      "rk" => "project##{project_id}#blend##{blend_id}"
+      "rk" => "project##{project_id}#blend##{blend_id}#job##{job_id}"
     }
   ).item
 
-  if blend
+  if job
     {
       statusCode: 200,
       body: JSON.generate({
-        blend: {
-          id: blend_id,
+        job: {
+          id: job_id,
           project_id: project_id,
-          file_name: blend["name"]
+          blend_id: blend_id,
+          type: job["type"]
+          parameters: job["parameters"]
         }
       })
     }

@@ -9,19 +9,13 @@ def handler(event:, context:)
   db = Aws::DynamoDB::Client.new(region: ENV["AWS_REGION"])
 
   blend = {
-    "hk" => blend_id,
-    "rk" => "BLEND"
-  }
-
-  project_blend = {
-    "hk" => "project##{project_id}",
-    "rk" => "blend##{blend_id}"
+    "hk" => "user##{user_id}",
+    "rk" => "project##{project_id}#blend##{blend_id}"
   }
 
   begin
     db.delete_item(table_name: ENV["PROJECTS_TABLE"], key: blend)
-    db.delete_item(table_name: ENV["PROJECTS_TABLE"], key: project_blend)
-    { statusCode: 200, body: project_id }
+    { statusCode: 200, body: blend_id }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
     puts "Unable to delete blend:"
     puts error.message

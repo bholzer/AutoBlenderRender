@@ -31,9 +31,15 @@ inputs = {
     subnet_ids = [ for k, sub in dependency.vpc.outputs.private_subnets: sub.id ]
     security_group_ids = []
   }
+  timeout = 10
   environment = {
     PROJECTS_TABLE = dependency.projects_table.outputs.table.name
     BUCKET_NAME = dependency.bucket.outputs.bucket.id
   }
-  policy_arns = [dependency.projects_table.outputs.read_policy.arn, dependency.projects_table.outputs.write_policy.arn]
+  policy_arns = [
+    dependency.projects_table.outputs.read_policy.arn,
+    dependency.projects_table.outputs.write_policy.arn,
+    dependency.bucket.outputs.read_policy.arn,
+    dependency.bucket.outputs.write_policy.arn
+  ]
 }

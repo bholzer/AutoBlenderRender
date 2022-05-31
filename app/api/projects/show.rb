@@ -9,26 +9,24 @@ def handler(event:, context:)
   s3_client = Aws::S3::Client.new()
   bucket = Aws::S3::Bucket.new(ENV["BUCKET_NAME"], client: s3_client)
 
-  user_project = db.get_item(
-    table_name: ENV["PROJECTS_TABLE"],
-    key: {
-      "hk" => "user##{user_id}",
-      "rk" => "project##{project_id}"
-    }
-  ).item
+  project = {
+    "hk" => "user##{user_id}",
+    "rk" => "project##{project_id}"
+  }
 
-  if user_project
-    project = db.get_item(table_name: ENV["PROJECTS_TABLE"], key: {"hk" => project_id, "rk" => "PROJECT"}).item
+  begin
+    project = db.get_item(table_name: ENV["PROJECTS_TABLE"], key: project).item
     {
       statusCode: 200,
       body: JSON.generate({
         project: {
-          id: project["hk"],
-          name: project["project_name"]
+          id: project["rk"].split("#").last,
+          name: project["name"]
         }
       })
     }
-  else
-    { statusCode: 400, body: "" }
+  rescue  Aws::DynamoDB::Errors::ServiceError => error
+    puts error
+    { statusCode: 400, body: "Failed to get project" }
   end
 end

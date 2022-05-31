@@ -24,8 +24,12 @@ dependency "bucket" {
   config_path = "../../../bucket"
 }
 
+dependency "render_queue" {
+  config_path = "../../../job_queues/render"
+}
+
 inputs = {
-  name = "${local.config.name}-blends-show"
+  name = "${local.config.name}-jobs-destroy"
   runtime = "ruby2.7"
   vpc_config = {
     subnet_ids = [ for k, sub in dependency.vpc.outputs.private_subnets: sub.id ]
@@ -35,6 +39,7 @@ inputs = {
   environment = {
     PROJECTS_TABLE = dependency.projects_table.outputs.table.name
     BUCKET_NAME = dependency.bucket.outputs.bucket.id
+    RENDER_QUEUE_URL = dependency.render_queue.outputs.queue.url
   }
   policy_arns = [
     dependency.projects_table.outputs.read_policy.arn,

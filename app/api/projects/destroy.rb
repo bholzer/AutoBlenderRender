@@ -8,47 +8,15 @@ def handler(event:, context:)
   db = Aws::DynamoDB::Client.new(region: ENV["AWS_REGION"])
 
   project = {
-    item: {
-      "hk" => project_id,
-      "rk" => "PROJECT",
-      "project_name" => request_body["name"]
-    }
+    "hk" => "user##{user_id}",
+    "rk" => "project##{project_id}"
   }
-
-  user_project = {
-    item: {
-      "hk" => "user##{user_id}",
-      "rk" => "project##{project_id}"
-    }
-  }
-
-  project_name_constraint = {
-    item: {
-      "hk" => "project_name##{project[:item]["project_name"]}",
-      "rk" => "PROJECT"
-    }
-  }
-
-  # Build a transaction for records needed
-  transact_items = [
-    project,
-    user_project,
-    project_name_constraint
-  ].map do |record|
-    {
-      delete: {
-        table_name: ENV["PROJECTS_TABLE"],
-        item: record[:item]
-      }
-    }
-  end
 
   begin
-    database.transact_write_items({transact_items: transact_items})
+    db.delete_item(table: ENV["PROJECTS_TABLE"], item: project)
     { statusCode: 200, body: project_id }
   rescue  Aws::DynamoDB::Errors::ServiceError => error
-    puts "Unable to delete project:"
-    puts error.message
-    { statusCode: 400, body: JSON.generate(error.message) }
+    puts error
+    { statusCode: 400, body: "Failed to destroy object" }
   end
 end
