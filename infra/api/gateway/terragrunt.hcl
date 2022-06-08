@@ -72,114 +72,75 @@ dependency "jobs_destroy" {
 inputs = {
   name = local.config.name
   description = "API for AutoBlenderRender render farm"
+
+  authorizers = {
+    cognito = {
+      source = "$request.header.Authorization"
+      audience = [dependency.cli_client.outputs.client.id]
+      issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
+    }
+  }
+
   routes = {
     "GET /projects" = {
       type = "lambda"
       function_name = dependency.projects_index.outputs.function.function_name,
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "GET /projects/{projectId}" = {
       type = "lambda"
       function_name = dependency.projects_show.outputs.function.function_name,
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "POST /projects" = {
       type = "lambda"
       function_name = dependency.projects_create.outputs.function.function_name,
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "DELETE /projects/{projectId}" = {
       type = "lambda"
       function_name = dependency.projects_destroy.outputs.function.function_name,
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "GET /projects/{projectId}/blends" = {
       type = "lambda"
       function_name = dependency.blends_index.outputs.function.function_name,
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "GET /projects/{projectId}/blends/{blendId}" = {
       type = "lambda"
       function_name = dependency.blends_show.outputs.function.function_name,
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "POST /projects/{projectId}/blends" = {
       type = "lambda"
       function_name = dependency.blends_create.outputs.function.function_name,
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "DELETE /projects/{projectId}/blends/{blendId}" = {
       type = "lambda"
       function_name = dependency.blends_destroy.outputs.function.function_name,
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "GET /projects/{projectId}/blends/{blendId}/jobs" = {
       type = "lambda"
       function_name = dependency.jobs_index.outputs.function.function_name
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "GET /projects/{projectId}/blends/{blendId}/jobs/{jobId}" = {
       type = "lambda"
       function_name = dependency.jobs_show.outputs.function.function_name
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "POST /projects/{projectId}/blends/{blendId}/jobs" = {
       type = "lambda"
       function_name = dependency.jobs_create.outputs.function.function_name
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     },
     "DELETE /projects/{projectId}/blends/{blendId}/jobs/{jobId}" = {
       type = "lambda"
       function_name = dependency.jobs_destroy.outputs.function.function_name
-      auth = {
-        source = "$request.header.Authorization"
-        audience = [dependency.cli_client.outputs.client.id]
-        issuer = "https://${dependency.user_pool.outputs.user_pool.endpoint}"
-      }
+      auth = { authorizer_name = "cognito" }
     }
   }
 }
