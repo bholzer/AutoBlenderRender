@@ -5,7 +5,7 @@ module BlenderFarm
     class Project
       include DynamoResource
 
-      attr_accessor :user_id, :project_id, :name
+      attr_accessor :user_id, :project_id, :name, :blends
 
       def self.key_attributes
         {
@@ -18,6 +18,12 @@ module BlenderFarm
         @user_id = user_id
         @project_id = project_id
         @name = name
+        @blends = []
+      end
+
+      def add_blend(blend)
+        @blends << blend
+        blend.project = self
       end
     end
   end

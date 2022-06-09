@@ -34,6 +34,18 @@ module BlenderFarm
       ].with_indifferent_access
     end
 
+    def self.all_for_user(user_id)
+      all_items = dynamo_client.query(
+        table_name: BlenderFarm.config[:table],
+        key_condition_expression: "hk = :hk",
+        expression_attribute_values: {
+          ":hk" => "user_id##{user_id}"
+        }
+      ).items
+
+      all_items.map{|item| DynamoResource.instance_from_item(item) }
+    end
+
     # Get the composite key based on key attributes of object
     def key
       self.class.build_key(**key_attributes)
@@ -49,7 +61,11 @@ module BlenderFarm
     end
 
     def get_hierarchy
-      self.class.get_hierarchy(**key_attributes)
+      descendents = self.class.get_hierarchy(**key_attributes).reject do |item|
+        item["hk"] == self.key["hk"] && item["rk"] == self.key["rk"]
+      end
+
+      descendents.map{|item| DynamoResource.instance_from_item(item) }
     end
 
     class_methods do
