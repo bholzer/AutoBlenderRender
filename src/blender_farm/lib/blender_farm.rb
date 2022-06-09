@@ -2,7 +2,7 @@ require "blender_farm/version"
 require "blender_farm/resources/blend"
 require "blender_farm/resources/project"
 require "logger"
-require 'aws-sdk-dynamodb'
+require "aws-sdk-dynamodb"
 
 module BlenderFarm
   class Error < StandardError; end

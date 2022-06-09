@@ -1,17 +1,55 @@
-require 'active_support/concern'
-
+require 'active_support'
+require "active_support/core_ext"
+require 'securerandom'
 module BlenderFarm
   module DynamoResource
     extend ActiveSupport::Concern
 
+    def self.instance_from_item(item)
+      including_classes = ObjectSpace.each_object(Class).select do |c|
+        c.included_modules.include?(self)
+      end
+
+      item = item.with_indifferent_access
+      parsed_key = parse_key(item)
+
+      klass = including_classes.find do |k|
+        p k.key_attributes
+        [:hk, :rk].all? do |key_name|
+          parsed_key[key_name].keys.map(&:to_sym) == k.key_attributes[key_name]
+        end
+      end
+
+      klass.instance_from_item(item)
+    end
+
+    # Given hk and rk with hash-delimited values e.g. "project_id#1234#blend_id#1234"
+    # return hash of form {"project_id" => 1234, "blend_id" => 1234}
+    def self.parse_key(item)
+      Hash[
+        item.slice(:hk, :rk).map do |k,v|
+          attrs = Hash[v.split("#").each_slice(2).to_a]
+          [k, attrs]
+        end
+      ].with_indifferent_access
+    end
+
     # Get the composite key based on key attributes of object
     def key
-      key_attrs = Hash[
+      self.class.build_key(**key_attributes)
+    end
+
+    # Attributes that comprise the composite key for the resource
+    def key_attributes
+      Hash[
         self.class.key_attributes.values.flatten.map do |attr_name|
           [attr_name, self.send(attr_name)]
         end
       ]
-      self.class.build_key(**key_attrs)
+    end
+
+    def get_hierarchy
+      self.class.get_hierarchy(**key_attributes)
     end
 
     class_methods do
@@ -25,7 +63,7 @@ module BlenderFarm
             end
             [ key_name, key_pairs.join("#") ]
           end
-        ]
+        ].with_indifferent_access
       end
 
       def dynamo_client
@@ -37,24 +75,49 @@ module BlenderFarm
         dynamo_client.get_item(
           table_name: BlenderFarm.config[:table],
           key: composite_key
-        ).item
+        ).item&.with_indifferent_access
+      end
+
+      def id_name
+        self.name.demodulize.downcase + "_id"
+      end
+
+      def create(**create_params)
+        if create_params[id_name.to_sym].nil?
+          create_params[id_name.to_sym] = SecureRandom.uuid
+        end
+        key = build_key(**create_params)
+        key_params = DynamoResource.parse_key(key).values.reduce(:merge)
+        item_attrs = key.merge(create_params)
+        item_without_key_attrs = item_attrs.except(*key_params.keys)
+        dynamo_client.put_item(table_name: BlenderFarm.config[:table], item: item_without_key_attrs)
+        instance_from_item(item_attrs.symbolize_keys)
+      end
+
+      def instance_from_item(item)
+        item = item.with_indifferent_access
+        key_params = DynamoResource.parse_key(item).values.reduce(:merge)
+        all_attributes = item.merge(key_params).except(:hk, :rk)
+
+        new(**all_attributes.symbolize_keys)
       end
 
       # Accepts the resource params that comprise the key of the item
       # Returns an instance of the resource that matched the params
       def find(**key_params)
         dynamo_item = get_dynamo_item(**key_params)
-        parsed_key = parse_key(dynamo_item)
-        all_attributes = dynamo_item.merge(parsed_key).reject{|k,v| ["hk", "rk"].include?(k) }
-
-        new(**all_attributes.transform_keys(&:to_sym))
+        return nil if dynamo_item.nil?
+        instance_from_item(dynamo_item)
       end
 
-      # Given hk and rk with hash-delimited values e.g. "project_id#1234#blend_id#1234"
-      # return hash of form {"project_id" => 1234, "blend_id" => 1234}
-      def parse_key(item)
-        split_keys = item.slice("hk", "rk").values.flat_map{|key| key.split("#") }
-        Hash[split_keys.each_slice(2).to_a]
+      # Get the resource and all descendents
+      def get_hierarchy(**key_params)
+        eav = build_key(**key_params).transform_keys{|k| ":#{k}" } #Build query expression values from key
+        dynamo_client.query(
+          table_name: BlenderFarm.config[:table],
+          key_condition_expression: "hk = :hk AND begins_with(rk, :rk)",
+          expression_attribute_values: eav
+        ).items
       end
     end
   end
