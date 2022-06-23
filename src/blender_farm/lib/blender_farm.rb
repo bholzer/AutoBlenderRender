@@ -1,6 +1,8 @@
 require "blender_farm/version"
-require "blender_farm/resources/blend"
+require "blender_farm/resources/user"
 require "blender_farm/resources/project"
+require "blender_farm/resources/blend"
+require "blender_farm/resources/job"
 require "logger"
 require "aws-sdk-dynamodb"
 

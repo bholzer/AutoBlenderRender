@@ -1,33 +1,30 @@
 require "blender_farm/dynamo_resource"
+require 'securerandom'
 
 module BlenderFarm
   module Resources
     class Job
       include DynamoResource
+      attr_accessor :id, :blend
+      db_attribute :type
 
-      attr_accessor :user_id, :project_id, :blend_id, :job_id, :type
-      attr_writer :project, :blend
+      KEY_TEMPLATE = {
+        hk: "user#%{user}",
+        rk: "project#%{project}#blend#%{blend}#job#%{job}"
+      }
 
-      def self.key_attributes
+      def initialize(id: SecureRandom.uuid, type: nil)
+        @id = id
+        @type = type
+      end
+
+      def key_params
         {
-          hk: [:user_id],
-          rk: [:project_id, :blend_id, :job_id]
+          project: blend.project.id,
+          user: blend.project.user.id,
+          blend: blend.id,
+          job: id
         }
-      end
-
-      def initialize(user_id:, project_id:, blend_id:, type:)
-        @user_id = user_id
-        @project_id = project_id
-        @blend_id = blend_id
-        @name = type
-      end
-
-      def project
-        blend.project
-      end
-
-      def blend
-        @blend ||= Blend.find(user_id: user_id, project_id: project_id, blend_id: blend_id)
       end
     end
   end
