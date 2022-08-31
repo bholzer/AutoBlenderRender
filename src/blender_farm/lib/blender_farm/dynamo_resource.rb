@@ -57,6 +57,13 @@ module BlenderFarm
           key_condition_expression: "hk = :hk AND begins_with(rk, :rk)",
           expression_attribute_values: eav
         ).items
+
+        # items.each do |item|
+        #   params = item["rk"].split("#").each_cons(2).to_a
+        #   model_name = params.last.first
+        #   klass = "BlenderFarm::Resources::#{model_name.camelize}".constantize
+        #   model_name.camelize
+        # end
       end
 
       def create(**params)
@@ -88,6 +95,10 @@ module BlenderFarm
           end
         end
         instance
+      end
+
+      def self.db_item_to_instance(item)
+        
       end
     end
   end
