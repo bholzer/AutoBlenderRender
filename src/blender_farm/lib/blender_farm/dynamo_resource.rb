@@ -5,13 +5,12 @@ module BlenderFarm
   module DynamoResource
     extend ActiveSupport::Concern
 
-    # Given hk and rk with hash-delimited values e.g. "project_id#1234#blend_id#1234"
+    # Given hash with hk and rk containing hash-delimited values e.g. "project_id#1234#blend_id#1234"
     # return hash of form {"project_id" => 1234, "blend_id" => 1234}
     def self.parse_key(item)
       Hash[
-        item.slice(:hk, :rk).map do |k,v|
-          attrs = Hash[v.split("#").each_slice(2).to_a]
-          [k, attrs]
+        item.slice(:hk, :rk).flat_map do |k,v|
+          Hash[v.split("#").each_slice(2).to_a].to_a
         end
       ].with_indifferent_access
     end
@@ -49,6 +48,7 @@ module BlenderFarm
         ].with_indifferent_access
       end
 
+      # Finds this item and any descendents
       def find(**key_params)
         key = generate_key(key_params)
         eav = key.transform_keys{|k| ":#{k}"}
@@ -60,33 +60,8 @@ module BlenderFarm
       end
 
       def create(**params)
-        instance = Helpers.build_hierarchy(self, params)
+        instance = self.new(params)
         instance.put
-        instance
-      end
-    end
-
-    module Helpers
-      # Given a class and hash, build the hierarchy of models from this class upward
-      # returns and instance of the specified class, with associated models built as well.
-      # 
-      # For example: build_hierarchy(Blend, {id: "blendID", project: {id: "projectID", user: {id: "userID"}}})
-      def self.build_hierarchy(klass, hash)
-        assoc, attrs = hash.partition do |k,v|
-          v.is_a?(Hash) && BlenderFarm::Resources.const_defined?(k.to_s.camelize)
-        end.map(&:to_h)
-
-        instance = klass.new(**attrs)
-        klass_name_as_attr = klass.name.demodulize.downcase.underscore
-
-        # For each association provided in hash, recursively instantiate and associate models.
-        assoc.each do |k,v|
-          assoc_klass = "BlenderFarm::Resources::#{k.to_s.camelize}".constantize
-          assoc_instance = build_hierarchy(assoc_klass, v)
-          [:"add_#{klass_name_as_attr}", :"#{klass_name_as_attr}="].find do |setter|
-            assoc_instance.send(setter, instance)
-          end
-        end
         instance
       end
     end

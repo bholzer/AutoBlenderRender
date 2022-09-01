@@ -1,0 +1,77 @@
+PATH
+  remote: .
+  specs:
+    blender_farm (0.1.0)
+      activesupport (~> 7.0.3)
+      aws-sdk-autoscaling (~> 1.79.0)
+      aws-sdk-dynamodb (~> 1.74.0)
+      aws-sdk-s3 (~> 1.113.2)
+      aws-sdk-sqs (~> 1.51.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (7.0.3.1)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (>= 1.6, < 2)
+      minitest (>= 5.1)
+      tzinfo (~> 2.0)
+    aws-eventstream (1.2.0)
+    aws-partitions (1.624.0)
+    aws-sdk-autoscaling (1.79.0)
+      aws-sdk-core (~> 3, >= 3.127.0)
+      aws-sigv4 (~> 1.1)
+    aws-sdk-core (3.138.0)
+      aws-eventstream (~> 1, >= 1.0.2)
+      aws-partitions (~> 1, >= 1.525.0)
+      aws-sigv4 (~> 1.1)
+      jmespath (~> 1, >= 1.6.1)
+    aws-sdk-dynamodb (1.74.0)
+      aws-sdk-core (~> 3, >= 3.127.0)
+      aws-sigv4 (~> 1.1)
+    aws-sdk-kms (1.58.0)
+      aws-sdk-core (~> 3, >= 3.127.0)
+      aws-sigv4 (~> 1.1)
+    aws-sdk-s3 (1.113.2)
+      aws-sdk-core (~> 3, >= 3.127.0)
+      aws-sdk-kms (~> 1)
+      aws-sigv4 (~> 1.4)
+    aws-sdk-sqs (1.51.1)
+      aws-sdk-core (~> 3, >= 3.127.0)
+      aws-sigv4 (~> 1.1)
+    aws-sigv4 (1.5.1)
+      aws-eventstream (~> 1, >= 1.0.2)
+    concurrent-ruby (1.1.10)
+    diff-lcs (1.5.0)
+    i18n (1.12.0)
+      concurrent-ruby (~> 1.0)
+    jmespath (1.6.1)
+    minitest (5.16.3)
+    rake (13.0.6)
+    rspec (3.11.0)
+      rspec-core (~> 3.11.0)
+      rspec-expectations (~> 3.11.0)
+      rspec-mocks (~> 3.11.0)
+    rspec-core (3.11.0)
+      rspec-support (~> 3.11.0)
+    rspec-expectations (3.11.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.11.0)
+    rspec-mocks (3.11.1)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.11.0)
+    rspec-support (3.11.0)
+    tzinfo (2.0.5)
+      concurrent-ruby (~> 1.0)
+
+PLATFORMS
+  x86_64-darwin-19
+
+DEPENDENCIES
+  blender_farm!
+  bundler (~> 2.3)
+  rake (~> 13.0)
+  rspec (~> 3.11)
+
+BUNDLED WITH
+   2.3.21

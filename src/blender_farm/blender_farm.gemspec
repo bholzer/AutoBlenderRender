@@ -35,6 +35,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", "~> 2.3"
   spec.add_development_dependency "rake", "~> 13.0"
+  spec.add_development_dependency "rspec", "~> 3.11"
   spec.add_runtime_dependency "aws-sdk-s3", "~> 1.113.2"
   spec.add_runtime_dependency "aws-sdk-autoscaling", "~> 1.79.0"
   spec.add_runtime_dependency "aws-sdk-sqs", "~> 1.51.1"

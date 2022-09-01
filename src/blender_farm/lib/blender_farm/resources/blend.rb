@@ -5,31 +5,27 @@ module BlenderFarm
   module Resources
     class Blend
       include DynamoResource
-      attr_accessor :id, :project, :jobs
+      attr_accessor :id, :project_id, :user_id
       db_attribute :name
 
       KEY_TEMPLATE = {
-        hk: "user#%{user}",
-        rk: "project#%{project}#blend#%{blend}"
+        hk: "user#%{user_id}",
+        rk: "project#%{project_id}#blend#%{id}"
       }
 
-      def initialize(id: SecureRandom.uuid, name: nil, jobs: [])
+      def initialize(id: SecureRandom.uuid, name: nil, project_id:, user_id:)
         @id = id
         @name = name
-        @jobs = jobs
+        @project_id = project_id
+        @user_id = user_id
       end
 
       def key_params
         {
-          project: project.id,
-          user: project.user.id,
-          blend: id
+          project_id: project_id,
+          user_id: user_id,
+          id: id
         }
-      end
-
-      def add_job(job)
-        @jobs << job
-        job.blend = self
       end
     end
   end

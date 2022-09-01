@@ -5,24 +5,19 @@ module BlenderFarm
   module Resources
     class User
       include DynamoResource
-      attr_accessor :id, :projects
+      attr_accessor :id
 
       KEY_TEMPLATE = {
-        hk: "user#%{user}"
+        hk: "user#%{id}",
+        rk: "USER"
       }
 
-      def initialize(id: SecureRandom.uuid, projects: [])
+      def initialize(id: SecureRandom.uuid)
         @id = id
-        @projects = projects
       end
 
       def key_params
-        { user: id }
-      end
-
-      def add_project(project)
-        @projects << project
-        project.user = self
+        { id: id }
       end
     end
   end
